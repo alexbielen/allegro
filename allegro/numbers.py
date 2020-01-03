@@ -11,6 +11,7 @@ from enum import (
     auto,
 )
 from functools import partial
+from typing import Sequence
 
 
 class FitMode(Enum):
@@ -52,3 +53,22 @@ fit_wrap.__doc__ = "Same as fit function with Wrap passed to mode argument."
 
 fit_clamp = partial(fit, FitMode.CLAMP)
 fit_clamp.__doc__ = "Same as fit function with Clamp passed to mode argument."
+
+
+def deltas(l: Sequence[float]) -> Sequence[float]:
+    """deltas returns list of differences between adjacent numbers
+    in the input list.
+
+    l -- a list of floats.
+
+    Note, the resulting list will be one element shorter
+    than the input list.
+
+    Example:
+    In:  [3, 2, 1]
+    Out: [1, 1]
+    """
+    if not l or len(l) == 1:
+        return l
+    else:
+        return [x - y for x, y in zip(l, l[1:])]
