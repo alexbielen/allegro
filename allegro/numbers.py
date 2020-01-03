@@ -12,7 +12,7 @@ from enum import (
     auto,
 )
 from functools import partial
-from typing import Sequence, TypeVar
+from typing import Callable, Sequence, TypeVar
 
 
 class FitMode(Enum):
@@ -49,10 +49,10 @@ def fit(mode: FitMode, lo: int, hi: int, num: int) -> int:
             return hi if num > hi else lo
 
 
-fit_wrap = partial(fit, FitMode.WRAP)
+fit_wrap: Callable[[int, int, int], int] = partial(fit, FitMode.WRAP)
 fit_wrap.__doc__ = "Same as fit function with Wrap passed to mode argument."
 
-fit_clamp = partial(fit, FitMode.CLAMP)
+fit_clamp: Callable[[int, int, int], int] = partial(fit, FitMode.CLAMP)
 fit_clamp.__doc__ = "Same as fit function with Clamp passed to mode argument."
 
 
@@ -105,10 +105,14 @@ def quantize(mode: QuantizeMode, step: TNum, num: TNum) -> TNum:
         return step * (classifier + 0.5)
 
 
-midtread_quantize = partial(quantize, QuantizeMode.MIDTREAD)
+midtread_quantize: Callable[[TNum, TNum], TNum] = partial(
+    quantize, QuantizeMode.MIDTREAD
+)
 midtread_quantize.__doc__ = "Same as quantize function \
     with MIDTREAD passed to mode."
 
-midriser_quantize = partial(quantize, QuantizeMode.MIDRISER)
+midriser_quantize: Callable[[TNum, TNum], TNum] = partial(
+    quantize, QuantizeMode.MIDRISER
+)
 midriser_quantize.__doc__ = "Same as quantize function \
     with MIDRISER passed to mode."
