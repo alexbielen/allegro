@@ -6,12 +6,13 @@ numbers.py
 The numbers module contains functions and classes that do "numeric"
 transformations.
 """
+import math
 from enum import (
     Enum,
     auto,
 )
 from functools import partial
-from typing import Sequence
+from typing import Sequence, TypeVar
 
 
 class FitMode(Enum):
@@ -72,3 +73,42 @@ def deltas(l: Sequence[float]) -> Sequence[float]:
         return l
     else:
         return [x - y for x, y in zip(l, l[1:])]
+
+
+class QuantizeMode(Enum):
+    MIDTREAD = auto()
+    MIDRISER = auto()
+
+
+TNum = TypeVar("TNum", int, float)
+
+
+def quantize(mode: QuantizeMode, step: TNum, num: TNum) -> TNum:
+    """quantize transforms a number to the closest multiple of step.
+
+    mode -- a quantize mode of type QuantizeMode.
+    step -- a step (or grid) value that num will be fit to of type TNum.
+    num -- a num of type TNum.
+
+    There are two modes:
+    MidTread uses the following algorithm:
+        step * floor((n / step) + 0.5)
+    MidRiser uses the following algorithm:
+        step * (floor(n / step)) + 0.5
+    """
+
+    if mode == QuantizeMode.MIDTREAD:
+        classifier = math.floor((num / step) + 0.5)
+        return step * classifier
+    else:
+        classifier = math.floor(num / step)
+        return step * (classifier + 0.5)
+
+
+midtread_quantize = partial(quantize, QuantizeMode.MIDTREAD)
+midtread_quantize.__doc__ = "Same as quantize function \
+    with MIDTREAD passed to mode."
+
+midriser_quantize = partial(quantize, QuantizeMode.MIDRISER)
+midriser_quantize.__doc__ = "Same as quantize function \
+    with MIDRISER passed to mode."
