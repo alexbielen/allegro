@@ -1,7 +1,9 @@
 from allegro.numbers import (
+    QuantizeMode,
     deltas,
     fit,
     FitMode,
+    quantize,
 )
 
 
@@ -19,3 +21,7 @@ def test_deltas():
     assert deltas([1]) == [1]
     assert deltas([3, 2, 1]) == [1, 1]
     assert deltas([5, 4, 3, 5, -1, -6]) == [1, 1, -2, 6, 5]
+
+
+def test_quantize():
+    assert quantize(QuantizeMode.MIDTREAD, 2, 13) == 14
