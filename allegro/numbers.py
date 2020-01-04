@@ -20,6 +20,7 @@ class FitMode(Enum):
 
     WRAP = auto()
     CLAMP = auto()
+    REFLECT = auto()  # not yet implemented
 
 
 def fit(mode: FitMode, lo: int, hi: int, num: int) -> int:

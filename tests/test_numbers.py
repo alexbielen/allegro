@@ -3,6 +3,8 @@ from allegro.numbers import (
     deltas,
     fit,
     FitMode,
+    fit_clamp,
+    fit_wrap,
     quantize,
 )
 
@@ -14,6 +16,16 @@ def test_fit():
     assert fit(FitMode.CLAMP, 1, 3, 2) == 2
     assert fit(FitMode.CLAMP, 1, 3, -1) == 1
     assert fit(FitMode.CLAMP, 1, 3, 4) == 3
+
+
+def test_fit_wrap():
+    assert fit_wrap(1, 3, 2) == 2
+    assert fit_wrap(0, 6, 7) == 1
+
+
+def test_fit_clamp():
+    assert fit_clamp(1, 3, 2) == 2
+    assert fit_clamp(1, 3, -1) == 1
 
 
 def test_deltas():
