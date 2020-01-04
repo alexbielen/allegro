@@ -106,14 +106,14 @@ def quantize(mode: QuantizeMode, step: TNum, num: TNum) -> TNum:
         return step * (classifier + 0.5)
 
 
-midtread_quantize: Callable[[TNum, TNum], TNum] = partial(
+quantize_midtread: Callable[[TNum, TNum], TNum] = partial(
     quantize, QuantizeMode.MIDTREAD
 )
-midtread_quantize.__doc__ = "Same as quantize function \
+quantize_midtread.__doc__ = "Same as quantize function \
     with MIDTREAD passed to mode."
 
-midriser_quantize: Callable[[TNum, TNum], TNum] = partial(
+quantize_midriser: Callable[[TNum, TNum], TNum] = partial(
     quantize, QuantizeMode.MIDRISER
 )
-midriser_quantize.__doc__ = "Same as quantize function \
+quantize_midriser.__doc__ = "Same as quantize function \
     with MIDRISER passed to mode."
