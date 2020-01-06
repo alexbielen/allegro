@@ -50,7 +50,7 @@ typed-ast = ">=1.4.0"
 d = ["aiohttp (>=3.3.2)", "aiohttp-cors"]
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Composable command line interface toolkit"
 name = "click"
 optional = false
@@ -215,6 +215,14 @@ pytest = ">=3.6"
 testing = ["fields", "hunter", "process-tests (2.0.2)", "six", "virtualenv"]
 
 [[package]]
+category = "main"
+description = "A Python binding for the RtMidi C++ library implemented using Cython."
+name = "python-rtmidi"
+optional = false
+python-versions = "*"
+version = "1.3.1"
+
+[[package]]
 category = "dev"
 description = "Alternative regular expression module, to replace re."
 name = "regex"
@@ -255,7 +263,7 @@ python-versions = "*"
 version = "0.1.8"
 
 [metadata]
-content-hash = "17874607640349a4ff9175162a11af6577ac920980d93a285fc0389ba8f27c29"
+content-hash = "88597964fc702b4f95af947ceea05646edc8577f6a8038f12bb04911c4645c9d"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -367,6 +375,20 @@ pytest = [
 pytest-cov = [
     {file = "pytest-cov-2.8.1.tar.gz", hash = "sha256:cc6742d8bac45070217169f5f72ceee1e0e55b0221f54bcf24845972d3a47f2b"},
     {file = "pytest_cov-2.8.1-py2.py3-none-any.whl", hash = "sha256:cdbdef4f870408ebdbfeb44e63e07eb18bb4619fae852f6e760645fa36172626"},
+]
+python-rtmidi = [
+    {file = "python-rtmidi-1.3.1.tar.gz", hash = "sha256:f9d2a1b5374b2e6856006537b6d4d5ceed4db4c4ee60caec4af83707a78297e4"},
+    {file = "python_rtmidi-1.3.1-cp27-cp27m-macosx_10_6_intel.whl", hash = "sha256:ffaed4e6654f5b7458e622146f5cd9253b1ca2986a118b9a86546111b1a55731"},
+    {file = "python_rtmidi-1.3.1-cp27-cp27m-win32.whl", hash = "sha256:d657e4f4ce4ad5b1c7ee738540889c031344c59159483bdbb65dab6c8459c746"},
+    {file = "python_rtmidi-1.3.1-cp27-cp27m-win_amd64.whl", hash = "sha256:521f2ca02876fae4f3efe7b52dfd2ec7cdba809af07905bd3b25b5aee36eaa50"},
+    {file = "python_rtmidi-1.3.1-cp35-cp35m-win32.whl", hash = "sha256:e516a7f876381667eba82417254bb8d138c17dc7666fd70212d839813b60ea19"},
+    {file = "python_rtmidi-1.3.1-cp35-cp35m-win_amd64.whl", hash = "sha256:67405b66ba90f8ef423974904ad12bf92d80fc14e4180d13a69e05d787a72849"},
+    {file = "python_rtmidi-1.3.1-cp36-cp36m-macosx_10_6_intel.whl", hash = "sha256:7724252c7a2d407c510f089da321755dedbc05a864c1e97c034c807882c3234c"},
+    {file = "python_rtmidi-1.3.1-cp36-cp36m-win32.whl", hash = "sha256:ad2a5f0c14faf9810cc92d919096be7167eff8d4fd63abc5e2d7c20e5da9326c"},
+    {file = "python_rtmidi-1.3.1-cp36-cp36m-win_amd64.whl", hash = "sha256:30d9fbb0070df100f58f6e93b8149aac2d435ae3b7d368e1fce9fd691184255c"},
+    {file = "python_rtmidi-1.3.1-cp37-cp37m-macosx_10_6_intel.whl", hash = "sha256:6a47a5e26675fba87fc90917c63139c8b3aa793bcb429f22fc52fffd87853f00"},
+    {file = "python_rtmidi-1.3.1-cp37-cp37m-win32.whl", hash = "sha256:977d93ad6b45b48efddb92aed7fd69e1a33ff5d7130399971101133ad673be3e"},
+    {file = "python_rtmidi-1.3.1-cp37-cp37m-win_amd64.whl", hash = "sha256:bee33b8c06431b0f5cfdf500c68e0562e1ec2bd46b8d883b216707f16d51e9a3"},
 ]
 regex = [
     {file = "regex-2019.12.20-cp27-cp27m-win32.whl", hash = "sha256:7bbbdbada3078dc360d4692a9b28479f569db7fc7f304b668787afc9feb38ec8"},
