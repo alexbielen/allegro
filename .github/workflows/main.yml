@@ -1,0 +1,22 @@
+name: CI
+
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install
+      uses: abatilo/actions-poetry@v1.1.0
+      with:
+        python_version: 3.8.0
+        poetry_version: 1.0.0
+        args: install
+    - name: Test
+      uses: abatilo/actions-poetry@v1.1.0
+      with:
+        python_version: 3.8.0
+        poetry_version: 1.0.0
+        args: run python -m pytest --cov=allegro tests/
+      
