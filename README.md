@@ -1,6 +1,7 @@
 # Allegro
 
 ![](https://github.com/alexbielen/allegro/workflows/.github/workflows/main.yml/badge.svg)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code-of-conduct.md)
 
 Note: Allegro is a work-in-progress and the APIs are unstable.
 
