@@ -6,17 +6,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Install
-      uses: abatilo/actions-poetry@v1.1.0
-      with:
-        python_version: 3.8.0
-        poetry_version: 1.0.0
-        args: install
-    - name: Test
-      uses: abatilo/actions-poetry@v1.1.0
-      with:
-        python_version: 3.8.0
-        poetry_version: 1.0.0
-        args: run python -m pytest --cov=allegro tests/
-      
+      - uses: actions/checkout@v1
+      - name: Install
+        uses: abatilo/actions-poetry@v1.1.0
+        with:
+          python_version: 3.8.0
+          poetry_version: 1.0.0
+          args: install
+      - name: Test
+        uses: abatilo/actions-poetry@v1.1.0
+        with:
+          python_version: 3.8.0
+          poetry_version: 1.0.0
+          args: run python -m pytest --cov=allegro --cov-report=xml tests/
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.xml
+          name: allegro-coverage
+          fail_ci_if_error: true
