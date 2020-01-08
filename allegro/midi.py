@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.DEBUG)
 @dataclasses.dataclass
 class MidiPort:
     """
-    MidiPort represents a MIDI port. 
+    MidiPort represents a MIDI port.
 
     port_id -- int
     port_name -- str
