@@ -1,7 +1,8 @@
+import dataclasses
 import logging
 import random
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import rtmidi
 from rtmidi.midiutil import open_midioutput
@@ -10,6 +11,19 @@ from rtmidi.midiconstants import NOTE_ON, NOTE_OFF
 
 log = logging.getLogger("allegro.midi")
 logging.basicConfig(level=logging.DEBUG)
+
+
+@dataclasses.dataclass
+class MidiPort:
+    """
+    MidiPort represents a MIDI port. 
+
+    port_id -- int
+    port_name -- str
+    """
+
+    port_id: int
+    port_name: str
 
 
 class MidiOut:
@@ -53,7 +67,7 @@ class MidiOut:
         log.debug(f"setting port to {port_id}")
         self._port_id = port_id
 
-    def get_available_ports(self) -> List[Tuple[int, str]]:
+    def get_available_ports(self) -> List[MidiPort]:
         """
         get_available_ports returns all available midi output ports.
 
@@ -63,7 +77,10 @@ class MidiOut:
         Ex: [(0, "Virtual IAC Bus"), (1, "SimpleSynth")]
         """
         ports = self.midiout.get_ports()
-        port_ids_and_names = [(port_id, name) for port_id, name in enumerate(ports)]
+        port_ids_and_names = [
+            MidiPort(port_id=port_id, port_name=name)
+            for port_id, name in enumerate(ports)
+        ]
         log.debug(port_ids_and_names)
         return port_ids_and_names
 
@@ -98,15 +115,14 @@ class MidiOut:
             log.error("Cannot test without open output.")
             return
 
-        notes = random.sample(range(30, 90), 10)
+        def random_event():
+            note = random.choice(range(30, 90))
+            dur = random.choice([0.1, 0.2, 0.5])
+            vel = random.choice([128, 100, 80, 60])
+            return note, dur, vel
 
-        def durs():
-            return random.choice([0.1, 0.2, 0.5])
-
-        def vels():
-            return random.choice([128, 100, 60, 40])
-
-        for note in notes:
-            self.output.send_message([NOTE_ON, note, vels()])
-            time.sleep(durs())
+        for _ in range(10):
+            note, dur, vel = random_event()
+            self.output.send_message([NOTE_ON, note, vel])
+            time.sleep(dur)
             self.output.send_message([NOTE_OFF, note, 0])
