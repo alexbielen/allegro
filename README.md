@@ -85,19 +85,9 @@ Open SimpleSynth and select "SimpleSynth virtual input" as the input source.
 In a `poetry` shell, run open a Python REPL.
 
 ```python
->>> from allegro.midi import MidiOut
->>> m = MidiOut()
->>> ports = m.get_available_ports() # you should see "SimpleSynth virtual input" listed here.
+>>> from allegro import midi
+>>> ports = midi.get_available_ports() # you should see "SimpleSynth virtual input" listed here.
 [MidiPort(port_id=0, port_name='SimpleSynth virtual input')]
->>> m.port_id = ports[0].port_id
->>> m.open_output()
+>>> m = midi.MidiOut(0)
 >>> m.test() # plays a short and random composition.
-```
-
-If you know the `port_id` you can simplify the initialization like so:
-
-```python
->>> from allegro.midi import MidiOut
->>> m = MidiOut(port_id=0)
->>> m.test()
 ```
