@@ -86,7 +86,7 @@ In a `poetry` shell, run open a Python REPL.
 
 ```python
 >>> from allegro import midi
->>> ports = midi.get_available_ports() # you should see "SimpleSynth virtual input" listed here.
+>>> ports = midi.get_output_ports() # you should see "SimpleSynth virtual input" listed here.
 [MidiPort(port_id=0, port_name='SimpleSynth virtual input')]
 >>> m = midi.MidiOut(0)
 >>> m.test() # plays a short and random composition.
