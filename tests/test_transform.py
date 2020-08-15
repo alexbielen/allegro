@@ -1,4 +1,4 @@
-from allegro.numbers import (
+from allegro.transfrom import (
     QuantizeMode,
     deltas,
     fit,
