@@ -1,9 +1,9 @@
 # pyright: strict
 
 """
-numbers.py
+transform.py
 
-The numbers module contains functions and classes that do "numeric"
+The transform module contains functions and classes that do "numeric"
 transformations.
 """
 import math
