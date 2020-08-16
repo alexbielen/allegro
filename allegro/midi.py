@@ -8,7 +8,6 @@ import rtmidi
 from rtmidi.midiutil import open_midioutput
 from rtmidi.midiconstants import NOTE_ON, NOTE_OFF
 
-
 log = logging.getLogger("allegro.midi")
 logging.basicConfig(level=logging.DEBUG)
 
@@ -92,3 +91,37 @@ class MidiOut:
         for _ in range(10):
             note, dur, vel = self._random_event()
             self.play(note, vel, dur)
+
+
+def keynum_to_notename(keynum: int) -> str:
+    """
+    keynum_to_notename takes a MIDI keynumber and converts it
+    to a notename.
+
+    args: keynum: int
+
+    returns: str
+    """
+    log.debug(f"received {keynum}")
+    notenames = [
+        "C",
+        "Db",
+        "D",
+        "Eb",
+        "E",
+        "F",
+        "Gb",
+        "G",
+        "Ab",
+        "A",
+        "Bb",
+        "B",
+    ]
+
+    notename = notenames[keynum % 12]
+    octave = (keynum // 12) - 1  # 60 is C4 aka middle C
+    result = notename + str(octave)
+
+    log.debug(f"result: {result}")
+    return result
+
