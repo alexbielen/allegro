@@ -1,5 +1,6 @@
 import dataclasses
 import logging
+import os
 import random
 import time
 from typing import List
@@ -9,7 +10,9 @@ from rtmidi.midiutil import open_midioutput
 from rtmidi.midiconstants import NOTE_ON, NOTE_OFF
 
 log = logging.getLogger("allegro.midi")
-logging.basicConfig(level=logging.DEBUG)
+
+loglevel = os.environ.get("ALLEGRO_LOGLEVEL", "ERROR")
+logging.basicConfig(level=loglevel)
 
 
 @dataclasses.dataclass
@@ -122,6 +125,4 @@ def keynum_to_notename(keynum: int) -> str:
     octave = (keynum // 12) - 1  # 60 is C4 aka middle C
     result = notename + str(octave)
 
-    log.debug(f"result: {result}")
     return result
-
