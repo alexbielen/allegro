@@ -39,4 +39,4 @@ def katabasis():
 
 
 if __name__ == "__main__":
-    print(katabasis())
+    pass

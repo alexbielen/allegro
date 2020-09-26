@@ -40,7 +40,7 @@ class _DefaultCallback(cp_model.CpSolverSolutionCallback):
 
 
 class Problem:
-    def __init__(self):
+    def __init__(self, enable_cache: bool = True):
         self.model = cp_model.CpModel()
         self._variables = []
         self._variable_count = 0
@@ -71,9 +71,10 @@ class Problem:
     def add_filter(self, f: Filter):
         self._filters.append(f)
 
-    def solve(self, show_variables=Optional[List[any]]):
-        if show_variables:
-            variables = show_variables
+    def solve(self, for_variables: Optional[List[any]] = None):
+
+        if for_variables:
+            variables = for_variables
         else:
             variables = self._variables
 
