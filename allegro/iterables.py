@@ -1,4 +1,3 @@
-# pyright: strict
 """
 iterables.py
 
