@@ -2,6 +2,8 @@
 constraints.py
 
 """
+import json
+import hashlib
 from collections import Counter
 from typing import Callable, List, Optional
 
@@ -40,11 +42,12 @@ class _DefaultCallback(cp_model.CpSolverSolutionCallback):
 
 
 class Problem:
-    def __init__(self, enable_cache: bool = True):
+    def __init__(self, disable_cache: bool = False):
         self.model = cp_model.CpModel()
         self._variables = []
         self._variable_count = 0
         self._filters = []
+        self._constraints = []
         self._solver = cp_model.CpSolver()
 
     def add_constant(self, x: int):
@@ -62,10 +65,12 @@ class Problem:
 
     def add_constraint(self, constraint: BoundedLinearExpression) -> Constraint:
         constraint = self.model.Add(constraint)
+        self._constraints.append(constraint)
         return constraint
 
     def add_all_different_constraint(self, notes: List[int]):
         constraint = self.model.AddAllDifferent(notes)
+        self._constraints.append(constraint)
         return constraint
 
     def add_filter(self, f: Filter):
@@ -88,3 +93,16 @@ class Problem:
                 result.append(solution)
 
         return result
+
+    def __hash__(self):
+        """
+        This is fairly hacky, so look here for hashing bugs.
+        """
+        filter_names = [f.__name__ for f in self._filters]
+        variable_values = [str(v) for v in self._variables]
+        constraint_protos = [str(c.Proto()) for c in self._constraints]
+        data = [filter_names, variable_values, constraint_protos]
+        md5_hash = hashlib.md5(
+            json.dumps(data, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        return int(md5_hash, 16)
