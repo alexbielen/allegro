@@ -9,6 +9,7 @@ click = "^7.0"
 ortools = "^7.8.7959"
 python = "^3.8"
 python-rtmidi = "^1.4.5"
+music21 = "^6.1.0"
 
 [tool.poetry.dev-dependencies]
 black = {version = "^19.10b0", allow-prereleases = true}

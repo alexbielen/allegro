@@ -3,7 +3,7 @@ import logging
 import os
 import random
 import time
-from typing import List
+from typing import List, Union
 
 import rtmidi
 from rtmidi.midiutil import open_midioutput
@@ -67,10 +67,25 @@ class MidiOut:
         midiout, _ = open_midioutput(self.port_id)
         return midiout
 
-    def play(self, note: int, vel: int, dur: float):
+    def play(self, notes: Union[int, List[int]], vel: int, dur: float):
+        if isinstance(notes, list):
+            self._play_notes(notes, vel, dur)
+        elif isinstance(notes, int):
+            self._play(notes, vel, dur)
+        else:
+            raise TypeError("Cannot convert to MIDI")
+
+    def _play(self, note: Union[int, List[int]], vel: int, dur: float):
         self.output.send_message([NOTE_ON, note, vel])
         time.sleep(dur)
         self.output.send_message([NOTE_OFF, note, 0])
+
+    def _play_notes(self, notes: [int], vel: int, dur: float):
+        for note in notes:
+            self.output.send_message([NOTE_ON, note, vel])
+        time.sleep(dur)
+        for note in notes:
+            self.output.send_message([NOTE_OFF, note, 0])
 
     def _random_event(self):
         note = random.choice(range(30, 90))
