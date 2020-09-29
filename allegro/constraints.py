@@ -86,7 +86,6 @@ class Problem:
         solutions = _DefaultCallback(variables)
         self._solver.SearchForAllSolutions(self.model, solutions)
         result = []
-        print(solutions.solutions)
         for solution in solutions.solutions:
             passes_filters = all([f(solution) for f in self._filters])
             if passes_filters:
