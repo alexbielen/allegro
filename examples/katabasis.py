@@ -1,5 +1,6 @@
+from more_itertools import pairwise
+
 from allegro.constraints import Problem, unique_pitch_classes
-from allegro.iterables import current_with_next
 
 
 def katabasis():
@@ -22,9 +23,8 @@ def katabasis():
     p.add_all_different_constraint(notes)
 
     # variables should ascend
-    for i, (current, next_) in enumerate(current_with_next(notes)):
-        if next_:
-            p.add_constraint(current + intervals[i] == next_)
+    for i, (current, next_) in enumerate(pairwise(notes)):
+        p.add_constraint(current + intervals[i] == next_)
 
     p.add_constraint(intervals[0] == intervals[10])
     p.add_constraint(intervals[1] == intervals[9])
