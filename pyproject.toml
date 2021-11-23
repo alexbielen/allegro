@@ -1,30 +1,24 @@
 [tool.poetry]
-authors = ["Alex Bielen <alex.bielen@twobulls.com>"]
-description = ""
+authors = ["Alex Hendrie Bielen <alexhendriebielen@gmail.com>"]
+description = "Tools for alogorithmic composition."
+license = "MIT"
 name = "allegro"
 version = "0.1.0"
 
 [tool.poetry.dependencies]
-click = "^7.0"
-ortools = "^7.8.7959"
-python = "^3.8"
-python-rtmidi = "^1.4.5"
+ortools = "9.1.9490"
+python = "^3.9"
+python-rtmidi = "^1.4.9"
+click = "^8.0.3"
 
 [tool.poetry.dev-dependencies]
-black = {version = "^19.10b0", allow-prereleases = true}
-flake8 = "^3.7.9"
-pytest = "^6.0"
-pytest-cov = "^2.8.1"
-pytest-mock = "^3.0.0"
-rope = "^0.17.0"
-
-[tool.pytest.ini_options]
-addopts = "-ra --durations=0 --cov=allegro"
-minversion = "6.0"
-testpaths = [
-  "tests",
-]
+black = "^21.11b1"
+flake8 = "^4.0.1"
+pytest = "^6.2.5"
+pytest-cov = "^3.0.0"
+pytest-mock = "^3.6.1"
+rope = "^0.22.0"
 
 [build-system]
-build-backend = "poetry.masonry.api"
-requires = ["poetry>=0.12"]
+build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]
