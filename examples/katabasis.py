@@ -10,14 +10,14 @@ def katabasis():
     lower_bound = 22
     upper_bound = 108
 
-    notes = [p.add_constant(21)]
+    notes = [p.add_constant(22)]
     for i in range(num_notes - 1):
         var = p.add_variable(lower_bound, upper_bound, f"n{i}")
         notes.append(var)
 
     intervals = []
     for i in range(num_notes - 1):
-        var = p.add_variable(1, 7, f"i{i}")
+        var = p.add_variable_from_domain([1, 2, 3, 4, 5, 7], f"i{i}")
         intervals.append(var)
 
     p.add_all_different_constraint(notes)
@@ -34,9 +34,17 @@ def katabasis():
 
     p.add_filter(unique_pitch_classes)
 
-    solutions = p.solve(show_variables=notes)
+    solutions = p.solve(for_variables=notes)
     return solutions
 
 
+def list_to_midicents(l):
+    return [x * 100 for x in l]
+
+
 if __name__ == "__main__":
-    pass
+    res = [list_to_midicents(l) for l in katabasis()]
+    print(res)
+
+    # intervals present in Lulu row
+    # 1 2 3 4 5 7
