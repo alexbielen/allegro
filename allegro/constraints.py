@@ -63,6 +63,14 @@ class Problem:
         self._variable_count += 1
         return var
 
+    def add_variable_from_domain(self, domain: List[int], name: str = None) -> Variable:
+        if not name:
+            name = chr(self._variable_count)
+        var = self.model.NewIntVarFromDomain(cp_model.Domain.FromValues(domain), name)
+        self._variables.append(var)
+        self._variable_count += 1
+        return var
+
     def add_constraint(self, constraint: BoundedLinearExpression) -> Constraint:
         constraint = self.model.Add(constraint)
         self._constraints.append(constraint)
@@ -86,7 +94,6 @@ class Problem:
         solutions = _DefaultCallback(variables)
         self._solver.SearchForAllSolutions(self.model, solutions)
         result = []
-        print(solutions.solutions)
         for solution in solutions.solutions:
             passes_filters = all([f(solution) for f in self._filters])
             if passes_filters:
