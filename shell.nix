@@ -2,6 +2,6 @@
 
 pkgs.mkShell {
 
-  buildInputs = [ pkgs.python3 pkgs.poetry pkgs.nixfmt ];
+  buildInputs = [ pkgs.python310 pkgs.poetry pkgs.nixfmt ];
 
 }
