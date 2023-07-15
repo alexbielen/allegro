@@ -24,9 +24,10 @@ jobs:
         with:
           path: ./.venv
           key: venv-${{ hashFiles('poetry.lock')}}
-
       - name: Install project dependencies
         run: poetry install
+      - name: Run automated tests
+        run: poetry run python -m pytest --cov=allegro --cov-report=xml tests/
 
       # - name: Install
       #   uses: abatilo/actions-poetry@v1.1.0
