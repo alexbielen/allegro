@@ -1,6 +1,3 @@
-from .allegro import *
+from . import numbers, physical
 
-
-__doc__ = allegro.__doc__
-if hasattr(allegro, "__all__"):
-    __all__ = allegro.__all__
+__all__ = ["numbers", "physical"]
