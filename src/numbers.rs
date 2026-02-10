@@ -51,10 +51,8 @@ pub enum FitMode {
 ///
 /// Raises `ValueError` if the range has zero or negative width (lb == ub after swapping).
 #[pyfunction]
-#[pyo3(signature = (num, min, max, mode=None))]
-pub fn fit(num: f64, min: f64, max: f64, mode: Option<FitMode>) -> PyResult<f64> {
-    let mode = mode.unwrap_or(FitMode::Wrap);
-
+#[pyo3(signature = (mode, min, max, num))]
+pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
     // If the number is already in the range, return it unchanged.
     if num >= min && num <= max {
         return Ok(num);

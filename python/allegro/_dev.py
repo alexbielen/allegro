@@ -22,7 +22,7 @@ def main() -> None:
         check=True,
     )
     subprocess.run(
-        [sys.executable, "-m", "pytest", "python/tests"],
+        [sys.executable, "-m", "pytest", "-v", "python/tests"],
         cwd=root,
         check=True,
     )

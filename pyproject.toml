@@ -26,4 +26,8 @@ python-source = "python"
 features = ["pyo3/extension-module"]
 
 [dependency-groups]
-dev = ["maturin>=1.8,<2.0", "pytest>=9.0.2"]
+dev = [
+    "hypothesis>=6.151.5",
+    "maturin>=1.8,<2.0",
+    "pytest>=9.0.2",
+]

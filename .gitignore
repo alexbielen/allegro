@@ -70,3 +70,6 @@ docs/_build/
 
 # Direnv
 .direnv/
+
+# hypothesis
+.hypothesis/
