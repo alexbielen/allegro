@@ -15,12 +15,20 @@ pub enum FitMode {
     /// Example with range [0, 10]: 15 → 5, 25 → 5, -3 → 7.
     #[pyo3(name = "Wrap")]
     Wrap,
-    /// **Reflect** — Values outside the range are reflected off the boundaries instead of
-    /// wrapping. Like a ball bouncing off the walls of the interval.
+    /// **Reflect** — Values outside the range are reflected back into the interval at
+    /// the boundaries, as if mirrored in the walls of the range, instead of wrapping.
     ///
-    /// Example with range [0, 10]: 15 → 5, 25 → 5, -3 → 3.
+    /// Example with range [0, 10]: 12 → 8, 23 → 3, -23 → 7.
     #[pyo3(name = "Reflect")]
     Reflect,
+    /// **Bounce** — Interpret the value as an amount of "energy" to travel
+    /// within the range. `num > 0` starts at the lower bound and moves right;
+    /// `num < 0` starts at the upper bound and moves left, bouncing off the
+    /// bounds until all energy is spent.
+    ///
+    /// Example with range [0, 10]: 12 → 8, 23 → 3, -12 → 2, -23 → 7.
+    #[pyo3(name = "Bounce")]
+    Bounce,
     /// **Clamp** — Values outside the range are pinned to the nearest bound. No wrapping
     /// or reflection; the result is always one of the two endpoints when outside.
     ///
@@ -37,53 +45,64 @@ pub enum FitMode {
 /// # Examples (range [0, 10])
 ///
 /// - **Wrap**: 12 → 2, -4 → 6 (periodic wrap in both directions).
-/// - **Reflect**: 12 → 8, -4 → 4 (bounce off the bounds).
+/// - **Reflect**: 12 → 8, -4 → 6 (coordinate-based reflection off the bounds).
+/// - **Bounce**: 12 → 8, -12 → 2 (energy-based bounce from min/max).
 /// - **Clamp**: 12 → 10, -4 → 0 (pin to nearest bound).
 ///
 /// Raises `ValueError` if the range has zero or negative width (lb == ub after swapping).
 #[pyfunction]
-#[pyo3(signature = (num, lb, ub, mode=None))]
-pub fn fit(num: f64, lb: f64, ub: f64, mode: Option<FitMode>) -> PyResult<f64> {
+#[pyo3(signature = (num, min, max, mode=None))]
+pub fn fit(num: f64, min: f64, max: f64, mode: Option<FitMode>) -> PyResult<f64> {
     let mode = mode.unwrap_or(FitMode::Wrap);
-    let (lb, ub) = if lb > ub { (ub, lb) } else { (lb, ub) };
 
-    if num >= lb && num <= ub {
+    // If the number is already in the range, return it unchanged.
+    if num >= min && num <= max {
         return Ok(num);
     }
-    let boundary_width = ub - lb;
-    if boundary_width <= 0.0 {
+
+    let range = max - min;
+    if range <= 0.0 {
         return Err(pyo3::exceptions::PyValueError::new_err(
             "range [lb, ub] must have positive width (lb < ub)",
         ));
     }
-    let exceeded_bound = if num > ub { ub } else { lb };
-    let excess = num - exceeded_bound;
+
+    let exceeded_bound = if num > max { max } else { min };
 
     Ok(match mode {
-        FitMode::Wrap => {
-            if exceeded_bound == ub {
-                // Above range: wrap from the lower bound.
-                lb + excess.rem_euclid(boundary_width)
-            } else {
-                // Below range: wrap from the upper bound. Reduce distance below by width
-                // and step left from ub (excess is negative, so -excess is distance below).
-                let steps_below = (-excess).rem_euclid(boundary_width);
-                ub - steps_below
-            }
-        }
+        FitMode::Wrap => (num - min).rem_euclid(range) + min,
         FitMode::Reflect => {
-            let two_width = 2.0 * boundary_width;
-            let excess_in_period = excess % two_width;
-            let offset = if excess_in_period.abs() > boundary_width {
-                if excess_in_period >= 0.0 {
-                    excess_in_period - two_width
+            // Treat `num` as a coordinate and map it back into
+            // [min, max] by reflecting at the nearest bound with the remaining offset.
+            let two_range = 2.0 * range;
+            let value = (num - exceeded_bound) % two_range;
+            let offset = if value.abs() > range {
+                if value >= 0.0 {
+                    value - two_range
                 } else {
-                    excess_in_period + two_width
+                    value + two_range
                 }
             } else {
-                -excess_in_period
+                -value
             };
+
             exceeded_bound + offset
+        }
+        FitMode::Bounce => {
+            // Treat the magnitude of `num` as energy, and its sign as direction:
+            // if num > 0: start at min and move right
+            // if num < 0: start at max and move left.
+            // One round trip (min→max→min or max→min→max) consumes 2 * range energy.
+            let energy = num.abs();
+            let period = 2.0 * range;
+            let r = energy.rem_euclid(period);
+            let offset = if r <= range { r } else { 2.0 * range - r };
+
+            if num > 0.0 {
+                min + offset
+            } else {
+                max - offset
+            }
         }
         FitMode::Clamp => exceeded_bound,
     })
