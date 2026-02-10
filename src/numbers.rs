@@ -22,7 +22,7 @@ pub enum FitMode {
     #[pyo3(name = "Reflect")]
     Reflect,
     /// **Bounce** — Interpret the value as an amount of "energy" to travel
-    /// within the range. `num > 0` starts at the lower bound and moves right;
+    /// within the range. `num >= 0` starts at the lower bound and moves right;
     /// `num < 0` starts at the upper bound and moves left, bouncing off the
     /// bounds until all energy is spent.
     ///
@@ -90,7 +90,7 @@ pub fn fit(num: f64, min: f64, max: f64, mode: Option<FitMode>) -> PyResult<f64>
         }
         FitMode::Bounce => {
             // Treat the magnitude of `num` as energy, and its sign as direction:
-            // if num > 0: start at min and move right
+            // if num >= 0: start at min and move right
             // if num < 0: start at max and move left.
             // One round trip (min→max→min or max→min→max) consumes 2 * range energy.
             let energy = num.abs();
@@ -98,7 +98,7 @@ pub fn fit(num: f64, min: f64, max: f64, mode: Option<FitMode>) -> PyResult<f64>
             let r = energy.rem_euclid(period);
             let offset = if r <= range { r } else { 2.0 * range - r };
 
-            if num > 0.0 {
+            if num >= 0.0 {
                 min + offset
             } else {
                 max - offset
