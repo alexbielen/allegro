@@ -1,11 +1,5 @@
 use pyo3::prelude::*;
 
-/// Formats the sum of two numbers as string.
-#[pyfunction]
-pub fn sum_as_string(a: usize, b: usize) -> PyResult<String> {
-    Ok((a + b).to_string())
-}
-
 #[pyclass]
 #[derive(Clone, Copy, PartialEq)]
 pub enum FitMode {
@@ -39,8 +33,7 @@ pub enum FitMode {
 
 /// Fit a number into the range [lb, ub] using the given mode.
 ///
-/// If the number is already inside [lb, ub], it is returned unchanged. If lb > ub,
-/// the bounds are swapped so the range is valid. Mode defaults to Wrap.
+/// If the number is already inside [lb, ub], it is returned unchanged.
 ///
 /// # Examples (range [0, 10])
 ///
