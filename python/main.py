@@ -1,10 +1,13 @@
-from allegro.numbers import sum_as_string
+from allegro.numbers import fit, FitMode
+from allegro.pitchclass import transpose, invert
 from allegro.physical import stub
 
 
 def main():
     print(stub())
-    print(sum_as_string(1, 2))
+    print(fit(FitMode.Wrap, 0, 12, 13))
+    print(transpose(1, 0))
+    print(invert(0))
 
 
 if __name__ == "__main__":

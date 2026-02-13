@@ -14,5 +14,9 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // physical module (physical.rs)
     m.add_function(wrap_pyfunction!(physical::stub, m)?)?;
 
+    // pitch class module (pitchclass.rs)
+    m.add_function(wrap_pyfunction!(pitchclass::transpose, m)?)?;
+    m.add_function(wrap_pyfunction!(pitchclass::invert, m)?)?;
+
     Ok(())
 }
