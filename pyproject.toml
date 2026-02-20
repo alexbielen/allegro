@@ -13,9 +13,11 @@ classifiers = [
 
 [project.optional-dependencies]
 tests = ["pytest"]
+plot = ["seaborn", "matplotlib"]
 
 [project.scripts]
 dev-build = "allegro._dev:main"
+allegro-plot = "allegro.plot:plot_bouncing_ball"
 
 [build-system]
 requires = ["maturin>=1.8,<2.0"]
