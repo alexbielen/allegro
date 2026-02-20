@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
 
 fn semitone_guard(semitones: i8) -> PyResult<()> {
-    if semitones < -11 || semitones > 11 {
+    if !(-11..=11).contains(&semitones) {
         return Err(pyo3::exceptions::PyValueError::new_err(
             "by_semitones must be within the range (-11)-11",
         ));
@@ -10,7 +10,7 @@ fn semitone_guard(semitones: i8) -> PyResult<()> {
 }
 
 fn pc_guard(pc: i8) -> PyResult<()> {
-    if pc < 0 || pc > 11 {
+    if !(0..=11).contains(&pc) {
         return Err(pyo3::exceptions::PyValueError::new_err(
             "pc must be within the range 0-11",
         ));
