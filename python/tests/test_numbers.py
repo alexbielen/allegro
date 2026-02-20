@@ -6,15 +6,13 @@ import pytest
 import sys
 
 
-MIN_FINITE = (
-    -sys.float_info.max / 2
-)  # TODO: divide by 2 is a hack to avoid overflows -- need to fix the rust code to avoid this
+MIN_FINITE = -sys.float_info.max
 
 # because we will potentially bump ub in the
 # nextafter call below, we need to be sure that
 # MAX_FINITE is one representable float below the actual max
 towards_zero = 0.0
-MAX_FINITE = math.nextafter(sys.float_info.max, towards_zero) / 2
+MAX_FINITE = math.nextafter(sys.float_info.max, towards_zero)
 
 
 @st.composite

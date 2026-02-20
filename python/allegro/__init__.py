@@ -1,3 +1,3 @@
-from . import numbers, physical
+from . import numbers, physical, quadratic
 
-__all__ = ["numbers", "physical"]
+__all__ = ["numbers", "physical", "quadratic"]

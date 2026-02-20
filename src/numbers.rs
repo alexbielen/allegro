@@ -2,6 +2,40 @@ use pyo3::prelude::*;
 
 #[pyclass]
 #[derive(Clone, Copy, PartialEq)]
+/// Strategy for fitting a number into a closed interval ``[min, max]``.
+///
+/// ``FitMode`` controls how values *outside* the interval are mapped back into it.
+/// If a value is already within ``[min, max]``, it is returned unchanged.
+///
+/// Modes:
+///     Wrap:
+///         Treat the interval as a repeating cycle (periodic modulo behavior).
+///         Values above ``max`` wrap around to ``min``; values below ``min`` wrap
+///         around from the top.
+///
+///     Reflect:
+///         Mirror values back into the interval by reflecting them off the nearest
+///         boundary (coordinate-based reflection).
+///
+///     Bounce:
+///         Interpret the value as "travel energy" across the interval.
+///         ``num >= 0`` starts at ``min`` moving right; ``num < 0`` starts at ``max``
+///         moving left; the value bounces off the boundaries until the energy is spent.
+///
+///     Clamp:
+///         Pin values outside the interval to the nearest boundary.
+///
+/// Examples:
+///     Using the interval ``[0, 10]``:
+///
+///     - ``Wrap``: ``15 -> 5``, ``25 -> 5``, ``-3 -> 7``
+///     - ``Reflect``: ``12 -> 8``, ``23 -> 3``, ``-23 -> 7``
+///     - ``Bounce``: ``12 -> 8``, ``23 -> 3``, ``-12 -> 2``, ``-23 -> 7``
+///     - ``Clamp``: ``15 -> 10``, ``-3 -> 0``
+///
+/// Notes:
+///     The public ``fit`` function also handles edge cases (non-finite values and
+///     extremely large spans) by returning a safe in-range value.
 pub enum FitMode {
     /// **Wrap** — Treat the range as a repeating cycle. Values above the upper bound
     /// wrap to the lower side, and values below the lower bound wrap to the upper side.
@@ -9,12 +43,14 @@ pub enum FitMode {
     /// Example with range [0, 10]: 15 → 5, 25 → 5, -3 → 7.
     #[pyo3(name = "Wrap")]
     Wrap,
+
     /// **Reflect** — Values outside the range are reflected back into the interval at
     /// the boundaries, as if mirrored in the walls of the range, instead of wrapping.
     ///
     /// Example with range [0, 10]: 12 → 8, 23 → 3, -23 → 7.
     #[pyo3(name = "Reflect")]
     Reflect,
+
     /// **Bounce** — Interpret the value as an amount of "energy" to travel
     /// within the range. `num >= 0` starts at the lower bound and moves right;
     /// `num < 0` starts at the upper bound and moves left, bouncing off the
@@ -23,6 +59,7 @@ pub enum FitMode {
     /// Example with range [0, 10]: 12 → 8, 23 → 3, -12 → 2, -23 → 7.
     #[pyo3(name = "Bounce")]
     Bounce,
+
     /// **Clamp** — Values outside the range are pinned to the nearest bound. No wrapping
     /// or reflection; the result is always one of the two endpoints when outside.
     ///
@@ -31,24 +68,62 @@ pub enum FitMode {
     Clamp,
 }
 
-/// Fit a number into the range [lb, ub] using the given mode.
-///
-/// If the number is already inside [lb, ub], it is returned unchanged.
-///
-/// # Examples (range [0, 10])
-///
-/// - **Wrap**: 12 → 2, -4 → 6 (periodic wrap in both directions).
-/// - **Reflect**: 12 → 8, -4 → 6 (coordinate-based reflection off the bounds).
-/// - **Bounce**: 12 → 8, -12 → 2 (energy-based bounce from min/max).
-/// - **Clamp**: 12 → 10, -4 → 0 (pin to nearest bound).
-///
-/// Raises `ValueError` if the range has zero or negative width (lb == ub after swapping).
+/// Fold a distance along a span with reflection
+fn triangle_fold(distance_past_bound: f64, span: f64) -> f64 {
+    let segment_index = (distance_past_bound / span).floor();
+    let is_reflecting = (segment_index * 0.5).fract() != 0.0;
+    let position_in_span = distance_past_bound.rem_euclid(span); // ∈ [0, span)
+    if is_reflecting {
+        span - position_in_span
+    } else {
+        position_in_span
+    }
+}
+
 #[pyfunction]
 #[pyo3(signature = (mode, min, max, num))]
+/// Fit a number into the closed interval ``[min, max]`` using the given mode.
+///
+/// If ``num`` is already within ``[min, max]``, it is returned unchanged.
+/// Otherwise, the chosen ``mode`` determines how values outside the interval are
+/// mapped back into it.
+///
+/// Args:
+///     mode (FitMode): The strategy used to map values into the interval.
+///     min (float): The lower bound of the interval.
+///     max (float): The upper bound of the interval.
+///     num (float): The value to fit into the interval.
+///
+/// Returns:
+///     float: A value within ``[min, max]``.
+///
+/// Raises:
+///     ValueError: If ``max - min`` is not positive (i.e., ``min >= max``).
+///     ValueError: If ``min`` or ``max`` are not finite.
+///
+/// Examples:
+///     Using the interval ``[0, 10]``:
+///
+///     - ``Wrap``: ``fit(Wrap, 0, 10, 12) == 2``; ``fit(Wrap, 0, 10, -4) == 6``
+///     - ``Reflect``: ``fit(Reflect, 0, 10, 12) == 8``; ``fit(Reflect, 0, 10, -4) == 4``
+///     - ``Bounce``: ``fit(Bounce, 0, 10, 12) == 8``; ``fit(Bounce, 0, 10, -12) == 2``
+///     - ``Clamp``: ``fit(Clamp, 0, 10, 12) == 10``; ``fit(Clamp, 0, 10, -4) == 0``
+///
+/// Notes:
+///     - The interval is treated as *closed*: endpoints are included.
+///     - Wrap and Reflect mode will revert to Clamp mode when the range between min and
+///       max is not finite due to an overflow.
+///     - Bounce mode will revert to Clamp mode when |num| / range is not finite due
+///       to an overflow.
 pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
-    // If the number is already in the range, return it unchanged.
     if num >= min && num <= max {
         return Ok(num);
+    }
+
+    if !min.is_finite() || !max.is_finite() {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "min and max must be finite",
+        ));
     }
 
     let range = max - min;
@@ -59,42 +134,35 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
     }
 
     let exceeded_bound = if num > max { max } else { min };
+    let distance_past = num - exceeded_bound;
 
-    Ok(match mode {
-        FitMode::Wrap => (num - min).rem_euclid(range) + min,
-        FitMode::Reflect => {
-            // Treat `num` as a coordinate and map it back into
-            // [min, max] by reflecting at the nearest bound with the remaining offset.
-            let two_range = 2.0 * range;
-            let value = (num - exceeded_bound) % two_range;
-            let offset = if value.abs() > range {
-                if value >= 0.0 {
-                    value - two_range
-                } else {
-                    value + two_range
-                }
+    // rem_euclid and triangle_fold divide by range; when the quotient overflows we get nan.
+    let wrap_reflect_rem_safe = range.is_finite() && (distance_past / range).is_finite();
+    let bounce_rem_safe = range.is_finite() && (num.abs() / range).is_finite();
+
+    let raw = match mode {
+        FitMode::Wrap => wrap_reflect_rem_safe.then(|| min + distance_past.rem_euclid(range)),
+
+        FitMode::Reflect => wrap_reflect_rem_safe.then(|| {
+            let offset = triangle_fold(distance_past.abs(), range);
+            if num > max {
+                max - offset
             } else {
-                -value
-            };
+                min + offset
+            }
+        }),
 
-            exceeded_bound + offset
-        }
-        FitMode::Bounce => {
-            // Treat the magnitude of `num` as energy, and its sign as direction:
-            // if num >= 0: start at min and move right
-            // if num < 0: start at max and move left.
-            // One round trip (min→max→min or max→min→max) consumes 2 * range energy.
-            let energy = num.abs();
-            let period = 2.0 * range;
-            let r = energy.rem_euclid(period);
-            let offset = if r <= range { r } else { 2.0 * range - r };
-
+        FitMode::Bounce => bounce_rem_safe.then(|| {
+            let offset = triangle_fold(num.abs(), range);
             if num >= 0.0 {
                 min + offset
             } else {
                 max - offset
             }
-        }
-        FitMode::Clamp => exceeded_bound,
-    })
+        }),
+
+        FitMode::Clamp => Some(exceeded_bound),
+    };
+
+    Ok(raw.unwrap_or(num.clamp(min, max)))
 }
