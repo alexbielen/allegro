@@ -68,24 +68,16 @@ pub enum FitMode {
     Clamp,
 }
 
-fn triangle_fold(distance_past_bound: f64, span: f64) -> Option<f64> {
-    if !(distance_past_bound.is_finite() && span.is_finite()) || span <= 0.0 {
-        return None;
-    }
-
-    // calculates the number of spans travelled
+/// Fold a distance along a span with reflection
+fn triangle_fold(distance_past_bound: f64, span: f64) -> f64 {
     let segment_index = (distance_past_bound / span).floor();
-
-    // checks if the number of spans travelled is even or odd in a floating point safe way
     let is_reflecting = (segment_index * 0.5).fract() != 0.0;
-
     let position_in_span = distance_past_bound.rem_euclid(span); // ∈ [0, span)
-
-    Some(if is_reflecting {
+    if is_reflecting {
         span - position_in_span
     } else {
         position_in_span
-    })
+    }
 }
 
 #[pyfunction]
@@ -107,6 +99,7 @@ fn triangle_fold(distance_past_bound: f64, span: f64) -> Option<f64> {
 ///
 /// Raises:
 ///     ValueError: If ``max - min`` is not positive (i.e., ``min >= max``).
+///     ValueError: If ``min`` or ``max`` are not finite.
 ///
 /// Examples:
 ///     Using the interval ``[0, 10]``:
@@ -118,12 +111,19 @@ fn triangle_fold(distance_past_bound: f64, span: f64) -> Option<f64> {
 ///
 /// Notes:
 ///     - The interval is treated as *closed*: endpoints are included.
-///     - For extremely large spans or non-finite intermediate values, the
-///       implementation may fall back to clamping to guarantee an in-range result.
+///     - Wrap and Reflect mode will revert to Clamp mode when the range between min and
+///       max is not finite due to an overflow.
+///     - Bounce mode will revert to Clamp mode when |num| / range is not finite due
+///       to an overflow.
 pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
-    // If the number is already in the range, return it unchanged.
     if num >= min && num <= max {
         return Ok(num);
+    }
+
+    if !min.is_finite() || !max.is_finite() {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "min and max must be finite",
+        ));
     }
 
     let range = max - min;
@@ -134,64 +134,35 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
     }
 
     let exceeded_bound = if num > max { max } else { min };
+    let distance_past = num - exceeded_bound;
 
-    Ok(match mode {
-        FitMode::Wrap => {
-            if !range.is_finite() {
-                num.clamp(min, max)
-            } else if num > max {
-                let distance_from_max = num - max;
-                let wrapped_offset = distance_from_max.rem_euclid(range);
-                min + wrapped_offset
+    // rem_euclid and triangle_fold divide by range; when the quotient overflows we get nan.
+    let wrap_reflect_rem_safe = range.is_finite() && (distance_past / range).is_finite();
+    let bounce_rem_safe = range.is_finite() && (num.abs() / range).is_finite();
+
+    let raw = match mode {
+        FitMode::Wrap => wrap_reflect_rem_safe.then(|| min + distance_past.rem_euclid(range)),
+
+        FitMode::Reflect => wrap_reflect_rem_safe.then(|| {
+            let offset = triangle_fold(distance_past.abs(), range);
+            if num > max {
+                max - offset
             } else {
-                let distance_from_min = num - min;
-
-                if distance_from_min.is_finite() {
-                    min + distance_from_min.rem_euclid(range)
-                } else {
-                    num.clamp(min, max)
-                }
+                min + offset
             }
-        }
+        }),
 
-        FitMode::Reflect => {
-            if !range.is_finite() {
-                num.clamp(min, max)
+        FitMode::Bounce => bounce_rem_safe.then(|| {
+            let offset = triangle_fold(num.abs(), range);
+            if num >= 0.0 {
+                min + offset
             } else {
-                let distance_past_bound = (num - exceeded_bound).abs();
-
-                match triangle_fold(distance_past_bound, range) {
-                    Some(offset) => {
-                        if num > max {
-                            max - offset
-                        } else {
-                            min + offset
-                        }
-                    }
-                    None => num.clamp(min, max),
-                }
+                max - offset
             }
-        }
+        }),
 
-        FitMode::Bounce => {
-            if !range.is_finite() {
-                num.clamp(min, max)
-            } else {
-                let energy = num.abs();
+        FitMode::Clamp => Some(exceeded_bound),
+    };
 
-                match triangle_fold(energy, range) {
-                    Some(offset) => {
-                        if num >= 0.0 {
-                            min + offset
-                        } else {
-                            max - offset
-                        }
-                    }
-                    None => num.clamp(min, max),
-                }
-            }
-        }
-
-        FitMode::Clamp => exceeded_bound,
-    })
+    Ok(raw.unwrap_or(num.clamp(min, max)))
 }
