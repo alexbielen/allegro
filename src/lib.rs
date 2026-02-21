@@ -22,6 +22,8 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // pitch class module (pitchclass.rs)
     m.add_function(wrap_pyfunction!(pitchclass::transpose, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::invert, m)?)?;
+    m.add_function(wrap_pyfunction!(pitchclass::transpose_ordered_set, m)?)?;
+    m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
 
     Ok(())
 }
