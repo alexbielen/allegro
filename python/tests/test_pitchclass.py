@@ -147,10 +147,15 @@ class TestOrderedSetBenchmarks:
     def test_benchmark_transpose_ordered_set(self, benchmark):
         by_semitones = 3
         ordered_set = [0, 1, 4, 5, 7, 8, 11]
+        # warm up
+        transpose_ordered_set(by_semitones, ordered_set)
         benchmark(transpose_ordered_set, by_semitones, ordered_set)
 
     def test_benchmark_invert_ordered_set(self, benchmark):
         ordered_set = [0, 1, 4, 5, 7, 8, 11]
+
+        # warm up
+        invert_ordered_set(ordered_set)
         benchmark(invert_ordered_set, ordered_set)
 
     def test_benchmark_transpose_ordered_set_in_python_performance(self, benchmark):
@@ -158,6 +163,28 @@ class TestOrderedSetBenchmarks:
         ordered_set = [0, 1, 4, 5, 7, 8, 11]
 
         def f(by_semitones, ordered_set):
-            return map(lambda pc: transpose(by_semitones, pc), ordered_set)
+            return [transpose(by_semitones, pc) for pc in ordered_set]
 
         benchmark(f, by_semitones, ordered_set)
+
+    def test_benchmark_transpose_ordered_set_in_pure_python_performance(
+        self, benchmark
+    ):
+        by_semitones = 3
+        ordered_set = [0, 1, 4, 5, 7, 8, 11]
+
+        def py_transpose(by_semitones, pc):
+            return (by_semitones + pc) % 12
+
+        def f(by_semitones, ordered_set):
+            return [py_transpose(by_semitones, pc) for pc in ordered_set]
+
+        benchmark(f, by_semitones, ordered_set)
+
+    def test_benchmark_invert_ordered_set_in_python_performance(self, benchmark):
+        ordered_set = [0, 1, 4, 5, 7, 8, 11]
+
+        def f(ordered_set):
+            return [invert(pc) for pc in ordered_set]
+
+        benchmark(f, ordered_set)

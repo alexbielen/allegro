@@ -17,7 +17,7 @@ def main() -> None:
             "dev-build must be run from the allegro repo (directory with pyproject.toml and Cargo.toml)"
         )
     subprocess.run(
-        [sys.executable, "-m", "maturin", "develop"],
+        [sys.executable, "-m", "maturin", "develop", "--release"],
         cwd=root,
         check=True,
     )
