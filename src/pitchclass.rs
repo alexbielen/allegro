@@ -18,6 +18,23 @@ fn pc_guard(pc: i8) -> PyResult<()> {
     Ok(())
 }
 
+#[inline]
+fn wrap_pc_0_11(mut x: i8) -> i8 {
+    // x is in a small range (for transpose: -11..=22)
+    if x < 0 {
+        x += 12;
+    } else if x >= 12 {
+        x -= 12;
+    }
+    x
+}
+
+#[inline]
+fn invert_pc(pc: i8) -> i8 {
+    // (12 - pc) mod 12, but pc is 0..=11
+    if pc == 0 { 0 } else { 12 - pc }
+}
+
 /// Invert a pitch class around 0.
 ///
 /// This computes the inversion of a pitch class by subtracting it from 12
@@ -42,7 +59,7 @@ fn pc_guard(pc: i8) -> PyResult<()> {
 #[pyo3(signature = (pc))]
 pub fn invert(pc: i8) -> PyResult<i8> {
     pc_guard(pc)?;
-    Ok((12 - pc).rem_euclid(12))
+    Ok(invert_pc(pc))
 }
 
 /// Transpose a pitch class by a given number of semitones.
@@ -68,33 +85,29 @@ pub fn invert(pc: i8) -> PyResult<i8> {
 pub fn transpose(by_semitones: i8, pc: i8) -> PyResult<i8> {
     semitone_guard(by_semitones)?;
     pc_guard(pc)?;
-    Ok((by_semitones + pc).rem_euclid(12))
-}
-
-/// Validate each pc in the set, then map `f` over it and collect. Shared by
-/// transpose_ordered_set and invert_ordered_set.
-fn map_ordered_set<F>(ordered_set: &[i8], f: F) -> PyResult<Vec<i8>>
-where
-    F: Fn(i8) -> PyResult<i8>,
-{
-    for pc in ordered_set {
-        pc_guard(*pc)?;
-    }
-    ordered_set
-        .iter()
-        .map(|pc| f(*pc))
-        .collect::<Result<Vec<i8>, PyErr>>()
+    Ok(wrap_pc_0_11(by_semitones + pc))
 }
 
 #[pyfunction]
 #[pyo3(signature = (by_semitones, ordered_set))]
 pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
     semitone_guard(by_semitones)?;
-    map_ordered_set(&ordered_set, |pc| transpose(by_semitones, pc))
+
+    let mut out = Vec::with_capacity(ordered_set.len());
+    for &pc in &ordered_set {
+        pc_guard(pc)?;
+        out.push(wrap_pc_0_11(pc + by_semitones));
+    }
+    Ok(out)
 }
 
 #[pyfunction]
 #[pyo3(signature = (ordered_set))]
 pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
-    map_ordered_set(&ordered_set, invert)
+    let mut out = Vec::with_capacity(ordered_set.len());
+    for &pc in &ordered_set {
+        pc_guard(pc)?;
+        out.push(invert_pc(pc));
+    }
+    Ok(out)
 }

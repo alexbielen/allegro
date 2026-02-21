@@ -7,6 +7,7 @@ from allegro.pitchclass import (
 from hypothesis import given, strategies as st
 
 import pytest
+import random
 
 
 @st.composite
@@ -144,15 +145,16 @@ class TestInvertOrderedSet:
 class TestOrderedSetBenchmarks:
     """Benchmarks for ordered_set functions. Run with: pytest --benchmark-only tests/test_pitchclass.py -k Benchmark"""
 
+    ORDERED_SET = [random.randint(0, 11) for _ in range(1000)]
+
     def test_benchmark_transpose_ordered_set(self, benchmark):
         by_semitones = 3
-        ordered_set = [0, 1, 4, 5, 7, 8, 11]
         # warm up
-        transpose_ordered_set(by_semitones, ordered_set)
-        benchmark(transpose_ordered_set, by_semitones, ordered_set)
+        transpose_ordered_set(by_semitones, self.ORDERED_SET)
+        benchmark(transpose_ordered_set, by_semitones, self.ORDERED_SET)
 
     def test_benchmark_invert_ordered_set(self, benchmark):
-        ordered_set = [0, 1, 4, 5, 7, 8, 11]
+        ordered_set = self.ORDERED_SET
 
         # warm up
         invert_ordered_set(ordered_set)
@@ -160,18 +162,16 @@ class TestOrderedSetBenchmarks:
 
     def test_benchmark_transpose_ordered_set_in_python_performance(self, benchmark):
         by_semitones = 3
-        ordered_set = [0, 1, 4, 5, 7, 8, 11]
 
         def f(by_semitones, ordered_set):
             return [transpose(by_semitones, pc) for pc in ordered_set]
 
-        benchmark(f, by_semitones, ordered_set)
+        benchmark(f, by_semitones, self.ORDERED_SET)
 
     def test_benchmark_transpose_ordered_set_in_pure_python_performance(
         self, benchmark
     ):
         by_semitones = 3
-        ordered_set = [0, 1, 4, 5, 7, 8, 11]
 
         def py_transpose(by_semitones, pc):
             return (by_semitones + pc) % 12
@@ -179,12 +179,11 @@ class TestOrderedSetBenchmarks:
         def f(by_semitones, ordered_set):
             return [py_transpose(by_semitones, pc) for pc in ordered_set]
 
-        benchmark(f, by_semitones, ordered_set)
+        benchmark(f, by_semitones, self.ORDERED_SET)
 
     def test_benchmark_invert_ordered_set_in_python_performance(self, benchmark):
-        ordered_set = [0, 1, 4, 5, 7, 8, 11]
 
         def f(ordered_set):
             return [invert(pc) for pc in ordered_set]
 
-        benchmark(f, ordered_set)
+        benchmark(f, self.ORDERED_SET)
