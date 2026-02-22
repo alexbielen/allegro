@@ -145,7 +145,7 @@ class TestInvertOrderedSet:
 class TestOrderedSetBenchmarks:
     """Benchmarks for ordered_set functions. Run with: pytest --benchmark-only tests/test_pitchclass.py -k Benchmark"""
 
-    ORDERED_SET = [random.randint(0, 11) for _ in range(1000)]
+    ORDERED_SET = [random.randint(0, 11) for _ in range(10_000)]
 
     def test_benchmark_transpose_ordered_set(self, benchmark):
         by_semitones = 3
