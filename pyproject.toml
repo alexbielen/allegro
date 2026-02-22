@@ -30,7 +30,7 @@ build-backend = "maturin"
 python-source = "python"
 # auto-initialize caches the Python interpreter so each pyfunction call doesn't pay
 # ~hundreds of µs of init overhead (see pyo3.rs "Features for embedding" / auto-initialize).
-features = ["pyo3/extension-module", "pyo3/auto-initialize"]
+features = ["pyo3/extension-module"]
 
 [dependency-groups]
 dev = [
