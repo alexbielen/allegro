@@ -164,5 +164,8 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
         FitMode::Clamp => Some(exceeded_bound),
     };
 
-    Ok(raw.unwrap_or(num.clamp(min, max)))
+    let result = raw.unwrap_or_else(|| num.clamp(min, max));
+    // Clamp to [min, max] so FP rounding/underflow never violates the contract (e.g. when
+    // range loses precision and reflect yields a value just outside the interval).
+    Ok(result.clamp(min, max))
 }
