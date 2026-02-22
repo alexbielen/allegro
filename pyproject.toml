@@ -18,6 +18,7 @@ plot = ["seaborn", "matplotlib"]
 
 [project.scripts]
 build-and-test = "allegro._build_scripts:build_and_test"
+benchmarks = "allegro._build_scripts:run_benchmarks"
 
 allegro-plot = "allegro.plot:plot_bouncing_ball"
 

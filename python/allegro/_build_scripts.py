@@ -33,6 +33,8 @@ def run_pytest(
     if skip_benchmark:
         args.append("--benchmark-skip")
     if benchmark_only:
+        args.append("-k")
+        args.append("benchmark")
         args.append("--benchmark-only")
 
     subprocess.run(
@@ -68,6 +70,12 @@ def build_and_test() -> None:
     run_clippy(root)
     run_maturin_develop(root, optimize=True)
     run_pytest(root, skip_benchmark=True, verbose=True)
+
+
+def run_benchmarks() -> None:
+    root = Path.cwd()
+    root = find_project_root(root)
+    run_pytest(root, benchmark_only=True, verbose=True)
 
 
 def main() -> None:
