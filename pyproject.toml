@@ -10,13 +10,15 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
+dependencies = ["rich>=14.3.3"]
 
 [project.optional-dependencies]
 tests = ["pytest"]
 plot = ["seaborn", "matplotlib"]
 
 [project.scripts]
-dev-build = "allegro._dev:main"
+build-and-test = "allegro._build_scripts:build_and_test"
+
 allegro-plot = "allegro.plot:plot_bouncing_ball"
 
 [build-system]
