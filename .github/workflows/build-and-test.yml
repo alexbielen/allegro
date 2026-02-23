@@ -39,5 +39,5 @@ jobs:
           set -e
           unset RUSTC_WRAPPER
           uv sync --locked --all-extras --dev
-          uv pip install allegro-sonata --no-index --find-links dist --force-reinstall
+          uv pip install allegro-sonata --find-links dist --force-reinstall
           uv run pytest
