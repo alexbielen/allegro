@@ -24,7 +24,9 @@
         # Provides a `rustToolchain` attribute for Nixpkgs that we can use to
         # create a Rust environment
         (final: prev: {
-          rustToolchain = prev.rust-bin.stable.latest.default;
+          rustToolchain = prev.rust-bin.stable.latest.default.override {
+            extensions = [ "rust-src" ];
+          };
         })
       ];
 
