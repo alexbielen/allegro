@@ -169,3 +169,71 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
     // range loses precision and reflect yields a value just outside the interval).
     Ok(result.clamp(min, max))
 }
+
+#[pyfunction]
+#[pyo3(signature = (step, value))]
+/// Quantize a value to the nearest multiple of ``step``.
+///
+/// Returns ``round(value / step) * step`` using IEEE-754 ``f64`` rounding
+/// (round half away from zero).
+///
+/// Args:
+///     step (float): The quantization step (grid size). Must be finite and non-zero.
+///     value (float): The value to quantize.
+///
+/// Returns:
+///     float: The quantized value.
+///
+/// Raises:
+///     ValueError: If ``step`` is zero or not finite.
+///     ValueError: If ``value`` is not finite.
+///     ValueError: If ``step`` and ``value`` are such that quantization would
+///         overflow ``f64``.
+///
+/// Notes:
+///     For IEEE-754 ``f64``, quantization is guaranteed not to overflow when:
+///
+///     .. math::
+///         |value| \le \min\bigl(\text{f64::MAX} \cdot |step|,\;
+///                                  \text{f64::MAX} - 0.5\cdot|step|\bigr).
+///
+/// Examples:
+///     ``quantize(1.0, 2.7) == 3.0``
+///     ``quantize(1.0, 2.4) == 2.0``
+///     ``quantize(1.0, 2.5) == 3.0``
+///     ``quantize(0.5, -1.3) == -1.5``
+///     ``quantize(0.3, 1.0) == math.isclose(0.9)``
+pub fn quantize(step: f64, value: f64) -> PyResult<f64> {
+    if !value.is_finite() {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "value must be finite",
+        ));
+    }
+    if !step.is_finite() || step == 0.0 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "step must be finite and non-zero",
+        ));
+    }
+
+    let abs_step = step.abs();
+    let abs_value = value.abs();
+    let max = f64::MAX;
+
+    // Division overflow: for |step| < 1, we can have |value / step| > f64::MAX.
+    // For |step| >= 1, division cannot overflow because it shrinks the magnitude.
+    let safe_div = abs_step >= 1.0 || abs_value <= max * abs_step;
+
+    // Multiplication overflow: a sufficient bound is
+    // |round(value / step) * step| <= |value| + 0.5 * |step|.
+    // Enforce |value| + 0.5 * |step| <= f64::MAX, written in a form that avoids
+    // overflow in the check itself.
+    let safe_mul = abs_value <= max - 0.5 * abs_step;
+
+    if !safe_div || !safe_mul {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "value and step are outside the supported range for quantize (see notes)",
+        ));
+    }
+
+    Ok((value / step).round() * step)
+}

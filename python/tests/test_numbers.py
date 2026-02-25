@@ -1,5 +1,5 @@
-from allegro.numbers import fit, FitMode
-from hypothesis import given, strategies as st
+from allegro.numbers import fit, FitMode, quantize
+from hypothesis import given, strategies as st, assume
 
 import math
 import pytest
@@ -130,3 +130,111 @@ class TestFitClampMode:
             assert result == lb
         else:
             assert lb <= result <= ub
+
+
+# --- quantize ---
+
+finite_floats = st.floats(
+    min_value=MIN_FINITE,
+    max_value=MAX_FINITE,
+    allow_nan=False,
+    allow_infinity=False,
+    width=64,
+)
+
+positive_finite = st.floats(
+    min_value=2**-1074,  # subnormal ok, but not 0
+    max_value=MAX_FINITE,
+    allow_nan=False,
+    allow_infinity=False,
+    width=64,
+)
+
+
+def is_safe_quantize_pair(step: float, value: float) -> bool:
+    """Mirror the Rust-side overflow guards for quantize."""
+    if not math.isfinite(step) or step == 0.0:
+        return False
+    if not math.isfinite(value):
+        return False
+
+    max_f64 = sys.float_info.max
+    abs_step = abs(step)
+    abs_value = abs(value)
+
+    # Division safe: for |step| < 1, require |value| <= max_f64 * |step|.
+    # For |step| >= 1, division cannot overflow.
+    if abs_step < 1.0 and abs_value > max_f64 * abs_step:
+        return False
+
+    # Multiplication safe: enforce |value| + 0.5 * |step| <= max_f64.
+    if abs_value > max_f64 - 0.5 * abs_step:
+        return False
+
+    return True
+
+
+class TestQuantize:
+    """Tests for quantize(step, value)."""
+
+    def test_docstring_examples(self):
+        assert quantize(1.0, 2.7) == 3.0
+        assert quantize(1.0, 2.4) == 2.0
+        assert quantize(1.0, 2.5) == 3.0
+        assert quantize(0.5, -1.3) == -1.5
+        assert math.isclose(quantize(0.3, 1.0), 0.9)
+
+    def test_exact_steps_unchanged(self):
+        assert quantize(1.0, 3.0) == 3.0
+        assert quantize(0.5, 2.0) == 2.0
+        assert quantize(0.25, -1.0) == -1.0
+
+    def test_round_half_away_from_zero(self):
+        assert quantize(1.0, 2.5) == 3.0
+        assert quantize(1.0, -2.5) == -3.0
+
+    @given(step=positive_finite, value=finite_floats)
+    def test_result_is_multiple_of_step(self, step: float, value: float):
+        assume(is_safe_quantize_pair(step, value))
+        result = quantize(step, value)
+        approx_multiple = round(value / step)
+        assert math.isclose(result, approx_multiple * step)
+
+    @given(step=positive_finite, value=finite_floats)
+    def test_result_is_finite(self, step: float, value: float):
+        assume(is_safe_quantize_pair(step, value))
+        result = quantize(step, value)
+        assert math.isfinite(result)
+
+    def test_step_zero_raises(self):
+        with pytest.raises(ValueError, match="finite and non-zero"):
+            quantize(0.0, 1.0)
+
+    def test_step_nan_raises(self):
+        with pytest.raises(ValueError, match="finite and non-zero"):
+            quantize(math.nan, 1.0)
+
+    def test_step_inf_raises(self):
+        with pytest.raises(ValueError, match="finite and non-zero"):
+            quantize(math.inf, 1.0)
+
+    def test_value_nan_raises(self):
+        with pytest.raises(ValueError, match="value must be finite"):
+            quantize(1.0, math.nan)
+
+    def test_value_inf_raises(self):
+        with pytest.raises(ValueError, match="value must be finite"):
+            quantize(1.0, math.inf)
+
+    def test_negative_step_allowed(self):
+        # round(value/step)*step with step < 0 still gives a valid multiple
+        assert quantize(-1.0, 2.7) == 3.0
+        assert quantize(-0.5, -1.3) == -1.5
+
+    def test_overflow_division_raises(self):
+        # value/step overflows when step is tiny and value is large
+        with pytest.raises(
+            ValueError,
+            match="outside the supported range",
+        ):
+            quantize(1e-308, 1e308)
