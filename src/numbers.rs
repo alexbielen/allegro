@@ -171,6 +171,27 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
 }
 
 #[pyfunction]
+#[pyo3(signature = (mode, min, max, nums))]
+/// Fit a list of numbers into the closed interval ``[min, max]`` using the given mode.
+///
+/// Args:
+///     mode (FitMode): The strategy used to map values into the interval.
+///     min (float): The lower bound of the interval.
+///     max (float): The upper bound of the interval.
+///     nums (list of float): The values to fit into the interval.
+///
+/// Returns:
+///     list of float: The fitted values.
+///
+/// Raises:
+///     ValueError: If ``min`` or ``max`` are not finite.
+///     ValueError: If ``max - min`` is not positive (i.e., ``min >= max``).
+///     ValueError: If any of the values in ``nums`` are not finite.
+pub fn fit_list(mode: FitMode, min: f64, max: f64, nums: Vec<f64>) -> PyResult<Vec<f64>> {
+    nums.iter().map(|num| fit(mode, min, max, *num)).collect()
+}
+
+#[pyfunction]
 #[pyo3(signature = (step, value))]
 /// Quantize a value to the nearest multiple of ``step``.
 ///
@@ -225,9 +246,10 @@ pub fn quantize(step: f64, value: f64) -> PyResult<f64> {
 
     // Multiplication overflow: a sufficient bound is
     // |round(value / step) * step| <= |value| + 0.5 * |step|.
-    // Enforce |value| + 0.5 * |step| <= f64::MAX, written in a form that avoids
-    // overflow in the check itself.
-    let safe_mul = abs_value <= max - 0.5 * abs_step;
+    // Enforce |value| + 0.5 * |step| <= f64::MAX. Use (max - abs_value) >= 0.5*step
+    // so we never subtract a small value from max (which would round to max and
+    // incorrectly allow values at the edge).
+    let safe_mul = (max - abs_value) >= 0.5 * abs_step;
 
     if !safe_div || !safe_mul {
         return Err(pyo3::exceptions::PyValueError::new_err(

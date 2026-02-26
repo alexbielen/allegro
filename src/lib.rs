@@ -11,6 +11,7 @@ mod quadratic;
 fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // numbers module (number.rs)
     m.add_function(wrap_pyfunction!(numbers::fit, m)?)?;
+    m.add_function(wrap_pyfunction!(numbers::fit_list, m)?)?;
     m.add_function(wrap_pyfunction!(numbers::quantize, m)?)?;
     m.add_class::<numbers::FitMode>()?;
 

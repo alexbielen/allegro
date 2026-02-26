@@ -1,4 +1,4 @@
-from allegro.numbers import fit, FitMode, quantize
+from allegro.numbers import fit, fit_list, FitMode, quantize
 from hypothesis import given, strategies as st, assume
 
 import math
@@ -132,6 +132,14 @@ class TestFitClampMode:
             assert lb <= result <= ub
 
 
+class TestFitList:
+    def test_fit_list(self):
+        assert fit_list(FitMode.Wrap, 0, 10, [12, 23, -12, -23]) == [2, 3, 8, 7]
+        assert fit_list(FitMode.Reflect, 0, 10, [12, 23, -12, -23]) == [8, 3, 8, 3]
+        assert fit_list(FitMode.Bounce, 0, 10, [12, 23, -12, -23]) == [8, 3, 2, 7]
+        assert fit_list(FitMode.Clamp, 0, 10, [12, 23, -12, -23]) == [10, 10, 0, 0]
+
+
 # --- quantize ---
 
 finite_floats = st.floats(
@@ -167,8 +175,10 @@ def is_safe_quantize_pair(step: float, value: float) -> bool:
     if abs_step < 1.0 and abs_value > max_f64 * abs_step:
         return False
 
-    # Multiplication safe: enforce |value| + 0.5 * |step| <= max_f64.
-    if abs_value > max_f64 - 0.5 * abs_step:
+    # Multiplication safe: enforce |value| + 0.5 * |step| <= max_f64. Use
+    # (max_f64 - abs_value) >= 0.5*step so we don't rely on max_f64 - 0.5*step
+    # (which can round to max_f64 when near the limit).
+    if (max_f64 - abs_value) < 0.5 * abs_step:
         return False
 
     return True
