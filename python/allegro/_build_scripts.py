@@ -1,8 +1,8 @@
 """Development helper: build Rust extension and run tests. Used by the dev-build script."""
 
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 from rich import print
 
@@ -24,9 +24,7 @@ def run_pytest(
     args = []
 
     if skip_benchmark and benchmark_only:
-        raise ValueError(
-            "Cannot skip benchmarks and run benchmark-only tests at the same time"
-        )
+        raise ValueError("Cannot skip benchmarks and run benchmark-only tests at the same time")
 
     if verbose:
         args.append("-v")
@@ -57,9 +55,7 @@ def find_project_root(root: Path) -> Path:
         if (p / "pyproject.toml").exists() and (p / "Cargo.toml").exists():
             return p
     else:
-        sys.exit(
-            "dev-build must be run from the allegro repo (directory with pyproject.toml and Cargo.toml)"
-        )
+        sys.exit("dev-build must be run from the allegro repo (directory with pyproject.toml and Cargo.toml)")
 
 
 def build_and_test() -> None:

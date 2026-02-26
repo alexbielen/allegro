@@ -1,7 +1,6 @@
-from allegro.quadratic import quadratic_bouncing_ball
-
 import pytest
 
+from allegro.quadratic import quadratic_bouncing_ball
 
 # TODO: These tests might be crap -- need to rewrite them.
 

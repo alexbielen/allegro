@@ -1,6 +1,6 @@
-from allegro.physical import bouncing_ball, CommonBallElasticity
-
 import pytest
+
+from allegro.physical import CommonBallElasticity, bouncing_ball
 
 
 def find_first_zero_index(result):
@@ -8,7 +8,6 @@ def find_first_zero_index(result):
 
 
 class TestBouncingBallBehavior:
-
     def test_returns_height_time_tuples(self):
         result = bouncing_ball(
             height=5.0,
@@ -52,12 +51,8 @@ class TestBouncingBallBehavior:
             assert result[i][0] == 0.0
 
     def test_that_smaller_elasticity_results_in_smaller_bounces(self):
-        basketball = bouncing_ball(
-            10.0, 0.0, None, CommonBallElasticity.Basketball, 100.0, 10
-        )
-        baseball = bouncing_ball(
-            10.0, 0.0, None, CommonBallElasticity.Baseball, 100.0, 10
-        )
+        basketball = bouncing_ball(10.0, 0.0, None, CommonBallElasticity.Basketball, 100.0, 10)
+        baseball = bouncing_ball(10.0, 0.0, None, CommonBallElasticity.Baseball, 100.0, 10)
 
         basketball_zero_index = find_first_zero_index(basketball)
         baseball_zero_index = find_first_zero_index(baseball)

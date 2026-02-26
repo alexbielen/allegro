@@ -1,12 +1,13 @@
-from allegro.numbers import fit, fit_list, FitMode, quantize
-from hypothesis import assume, given, strategies as st
-
-
 import math
-import pytest
 import random
 import sys
+from typing import ClassVar
 
+import pytest
+from hypothesis import assume, given
+from hypothesis import strategies as st
+
+from allegro.numbers import FitMode, fit, fit_list, quantize
 
 MIN_FINITE = -sys.float_info.max
 
@@ -78,22 +79,23 @@ def float_list_strategy(draw):
 
 
 class TestFit:
-    ALL_MODES = [FitMode.Wrap, FitMode.Reflect, FitMode.Bounce, FitMode.Clamp]
+    ALL_MODES: ClassVar[list[FitMode]] = [
+        FitMode.Wrap,
+        FitMode.Reflect,
+        FitMode.Bounce,
+        FitMode.Clamp,
+    ]
 
     @pytest.mark.parametrize("mode", ALL_MODES)
     @given(float_range_strategy())
-    def test_that_the_result_is_always_within_the_range(
-        self, mode: FitMode, tup: tuple[float, float, float]
-    ):
+    def test_that_the_result_is_always_within_the_range(self, mode: FitMode, tup: tuple[float, float, float]):
         lb, ub, num = tup
         result = fit(mode, lb, ub, num)
         assert lb <= result <= ub
 
     @pytest.mark.parametrize("mode", ALL_MODES)
     @given(float_range_strategy())
-    def test_returns_original_value_when_inside_range(
-        self, mode: FitMode, tup: tuple[float, float, float]
-    ):
+    def test_returns_original_value_when_inside_range(self, mode: FitMode, tup: tuple[float, float, float]):
         sorted_values = sorted(tup)
         lb, num, ub = sorted_values
         result = fit(mode, lb, ub, num)
@@ -101,9 +103,7 @@ class TestFit:
 
     @pytest.mark.parametrize("mode", ALL_MODES)
     @given(float_range_strategy())
-    def test_that_the_result_is_never_nan_or_infinity(
-        self, mode: FitMode, tup: tuple[float, float, float]
-    ):
+    def test_that_the_result_is_never_nan_or_infinity(self, mode: FitMode, tup: tuple[float, float, float]):
         result = fit(mode, *tup)
         assert not math.isnan(result)
         assert not math.isinf(result)
@@ -141,7 +141,6 @@ class TestFitBounceMode:
 
 
 class TestFitClampMode:
-
     @given(float_range_strategy())
     def test_fit_clamp(self, tup: tuple[float, float, float]):
         lb, ub, num = tup
@@ -169,9 +168,7 @@ class TestFitList:
 
 
 class TestFitListPerformance:
-    def run_fit_list_benchmark(
-        self, benchmark, mode: FitMode, python_version: bool
-    ) -> None:
+    def run_fit_list_benchmark(self, benchmark, mode: FitMode, python_version: bool) -> None:
         """Benchmark fit_list vs a pure-Python loop for a given mode."""
         lb, ub, _ = float_range_strategy().example()
         nums = [random.random() for _ in range(10000)]
@@ -252,10 +249,7 @@ def is_safe_quantize_pair(step: float, value: float) -> bool:
     # Multiplication safe: enforce |value| + 0.5 * |step| <= max_f64. Use
     # (max_f64 - abs_value) >= 0.5*step so we don't rely on max_f64 - 0.5*step
     # (which can round to max_f64 when near the limit).
-    if (max_f64 - abs_value) < 0.5 * abs_step:
-        return False
-
-    return True
+    return not (max_f64 - abs_value) < 0.5 * abs_step
 
 
 class TestQuantize:

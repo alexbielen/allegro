@@ -1,13 +1,16 @@
-from allegro.pitchclass import (
-    transpose,
-    invert,
-    transpose_ordered_set,
-    invert_ordered_set,
-)
-from hypothesis import given, strategies as st
+import random
+from typing import ClassVar
 
 import pytest
-import random
+from hypothesis import given
+from hypothesis import strategies as st
+
+from allegro.pitchclass import (
+    invert,
+    invert_ordered_set,
+    transpose,
+    transpose_ordered_set,
+)
 
 
 @st.composite
@@ -87,9 +90,7 @@ class TestTransposeOrderedSet:
         st.integers(min_value=-11, max_value=11),
         st.lists(pc_strategy(), min_size=0, max_size=12),
     )
-    def test_no_output_value_higher_than_11_or_lower_than_0(
-        self, by_semitones: int, ordered_set: list[int]
-    ):
+    def test_no_output_value_higher_than_11_or_lower_than_0(self, by_semitones: int, ordered_set: list[int]):
         result = transpose_ordered_set(by_semitones, ordered_set)
         assert all(0 <= pc <= 11 for pc in result)
 
@@ -97,24 +98,18 @@ class TestTransposeOrderedSet:
         st.integers(min_value=-11, max_value=11),
         st.lists(pc_strategy(), min_size=0, max_size=12),
     )
-    def test_that_the_result_is_the_same_length_as_the_input_set(
-        self, by_semitones: int, ordered_set: list[int]
-    ):
+    def test_that_the_result_is_the_same_length_as_the_input_set(self, by_semitones: int, ordered_set: list[int]):
         result = transpose_ordered_set(by_semitones, ordered_set)
         assert len(result) == len(ordered_set)
 
     # test that errors are raised when the input is outside the range
     @given(st.integers(min_value=-24, max_value=-12))
-    def test_raises_exception_when_by_semitones_is_outside_range(
-        self, by_semitones: int
-    ):
+    def test_raises_exception_when_by_semitones_is_outside_range(self, by_semitones: int):
         with pytest.raises(ValueError):
             transpose_ordered_set(by_semitones, [0, 1, 4, 7])
 
     @given(st.lists(st.integers(min_value=-12, max_value=-1), min_size=1, max_size=12))
-    def test_raises_exception_when_ordered_set_contains_values_outside_range(
-        self, ordered_set: list[int]
-    ):
+    def test_raises_exception_when_ordered_set_contains_values_outside_range(self, ordered_set: list[int]):
         with pytest.raises(ValueError):
             transpose_ordered_set(1, ordered_set)
 
@@ -128,16 +123,12 @@ class TestInvertOrderedSet:
         assert invert_ordered_set([]) == []
 
     @given(ordered_set_strategy())
-    def test_no_output_value_higher_than_11_or_lower_than_0(
-        self, ordered_set: list[int]
-    ):
+    def test_no_output_value_higher_than_11_or_lower_than_0(self, ordered_set: list[int]):
         result = invert_ordered_set(ordered_set)
         assert all(0 <= pc <= 11 for pc in result)
 
     @given(ordered_set_strategy())
-    def test_that_the_result_is_the_same_length_as_the_input_set(
-        self, ordered_set: list[int]
-    ):
+    def test_that_the_result_is_the_same_length_as_the_input_set(self, ordered_set: list[int]):
         result = invert_ordered_set(ordered_set)
         assert len(result) == len(ordered_set)
 
@@ -145,7 +136,7 @@ class TestInvertOrderedSet:
 class TestOrderedSetBenchmarks:
     """Benchmarks for ordered_set functions. Run with: pytest --benchmark-only tests/test_pitchclass.py -k Benchmark"""
 
-    ORDERED_SET = [random.randint(0, 11) for _ in range(10_000)]
+    ORDERED_SET: ClassVar[list[int]] = [random.randint(0, 11) for _ in range(10_000)]
 
     def test_benchmark_transpose_ordered_set(self, benchmark):
         by_semitones = 3
@@ -168,9 +159,7 @@ class TestOrderedSetBenchmarks:
 
         benchmark(f, by_semitones, self.ORDERED_SET)
 
-    def test_benchmark_transpose_ordered_set_in_pure_python_performance(
-        self, benchmark
-    ):
+    def test_benchmark_transpose_ordered_set_in_pure_python_performance(self, benchmark):
         by_semitones = 3
 
         def py_transpose(by_semitones, pc):
