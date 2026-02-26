@@ -1,8 +1,10 @@
 from allegro.numbers import fit, fit_list, FitMode, quantize
-from hypothesis import given, strategies as st, assume
+from hypothesis import assume, given, strategies as st
+
 
 import math
 import pytest
+import random
 import sys
 
 
@@ -53,6 +55,26 @@ def float_range_strategy(draw):
     )
 
     return lb, ub, num
+
+
+@st.composite
+def float_list_strategy(draw):
+    lb, ub, _ = draw(float_range_strategy())
+    nums = draw(
+        st.lists(
+            st.floats(
+                min_value=MIN_FINITE,
+                max_value=MAX_FINITE,
+                allow_nan=False,
+                allow_infinity=False,
+                width=64,
+            ),
+            min_size=1000,
+            max_size=1000,
+        )
+    )
+
+    return lb, ub, nums
 
 
 class TestFit:
@@ -138,6 +160,58 @@ class TestFitList:
         assert fit_list(FitMode.Reflect, 0, 10, [12, 23, -12, -23]) == [8, 3, 8, 3]
         assert fit_list(FitMode.Bounce, 0, 10, [12, 23, -12, -23]) == [8, 3, 2, 7]
         assert fit_list(FitMode.Clamp, 0, 10, [12, 23, -12, -23]) == [10, 10, 0, 0]
+
+    def test_fit_list_empty(self):
+        assert fit_list(FitMode.Wrap, 0, 10, []) == []
+        assert fit_list(FitMode.Reflect, 0, 10, []) == []
+        assert fit_list(FitMode.Bounce, 0, 10, []) == []
+        assert fit_list(FitMode.Clamp, 0, 10, []) == []
+
+
+class TestFitListPerformance:
+    def run_fit_list_benchmark(
+        self, benchmark, mode: FitMode, python_version: bool
+    ) -> None:
+        """Benchmark fit_list vs a pure-Python loop for a given mode."""
+        lb, ub, _ = float_range_strategy().example()
+        nums = [random.random() for _ in range(10000)]
+
+        if python_version:
+
+            def f(lb: float, ub: float, nums: list[float]) -> list[float]:
+                return [fit(mode, lb, ub, num) for num in nums]
+
+            # warm up
+            f(lb, ub, nums)
+            benchmark(f, lb, ub, nums)
+        else:
+            # warm up
+            fit_list(mode, lb, ub, nums)
+            benchmark(fit_list, mode, lb, ub, nums)
+
+    def test_benchmark_fit_list_wrap_mode(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Wrap, python_version=False)
+
+    def test_benchmark_fit_list_wrap_mode_in_python_performance(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Wrap, python_version=True)
+
+    def test_benchmark_fit_list_reflect_mode(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Reflect, python_version=False)
+
+    def test_benchmark_fit_list_reflect_mode_in_python_performance(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Reflect, python_version=True)
+
+    def test_benchmark_fit_list_bounce_mode(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Bounce, python_version=False)
+
+    def test_benchmark_fit_list_bounce_mode_in_python_performance(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Bounce, python_version=True)
+
+    def test_benchmark_fit_list_clamp_mode(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Clamp, python_version=False)
+
+    def test_benchmark_fit_list_clamp_mode_in_python_performance(self, benchmark):
+        self.run_fit_list_benchmark(benchmark, FitMode.Clamp, python_version=True)
 
 
 # --- quantize ---
