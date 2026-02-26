@@ -66,8 +66,10 @@
                   rustToolchain
                   rustPlatform.rustLibSrc
                   uv
+                  ruff
                   python
                   maturin
+                  trivy
                 ])
                 # Add libiconv if on macOS
                 ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [ libiconv ]);

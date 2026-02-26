@@ -38,4 +38,5 @@ dev = [
     "maturin>=1.8,<2.0",
     "pytest>=9.0.2",
     "pytest-benchmark>=5.0.0",
+    "ruff>=0.8.0",
 ]

@@ -1,3 +1,0 @@
-# ignore lines longer than 120 characters
-[flake8]
-max-line-length = 120
