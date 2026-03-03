@@ -20,8 +20,6 @@ plot = ["seaborn", "matplotlib"]
 build-and-test = "allegro._build_scripts:build_and_test"
 benchmarks = "allegro._build_scripts:run_benchmarks"
 
-allegro-plot = "allegro.plot:plot_bouncing_ball"
-
 [build-system]
 requires = ["maturin>=1.8,<2.0"]
 build-backend = "maturin"
@@ -33,7 +31,7 @@ python-source = "python"
 features = ["pyo3/extension-module"]
 
 [tool.bandit]
-exclude_dirs = ["python/tests"]
+exclude_dirs = ["python/tests", "python/allegro/_build_scripts.py"]
 
 [dependency-groups]
 dev = [
