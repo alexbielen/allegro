@@ -10,7 +10,7 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = ["rich>=14.3.3"]
+dependencies = ["matplotlib>=3.10.8", "rich>=14.3.3", "seaborn>=0.13.2"]
 
 [project.optional-dependencies]
 tests = ["pytest"]
@@ -31,6 +31,9 @@ python-source = "python"
 # auto-initialize caches the Python interpreter so each pyfunction call doesn't pay
 # ~hundreds of µs of init overhead (see pyo3.rs "Features for embedding" / auto-initialize).
 features = ["pyo3/extension-module"]
+
+[tool.bandit]
+exclude_dirs = ["python/tests"]
 
 [dependency-groups]
 dev = [

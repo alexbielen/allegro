@@ -15,7 +15,9 @@ name = "allegro-sonata"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "matplotlib" },
     { name = "rich" },
+    { name = "seaborn" },
 ]
 
 [package.optional-dependencies]
@@ -38,9 +40,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "matplotlib", marker = "extra == 'plot'" },
     { name = "pytest", marker = "extra == 'tests'" },
     { name = "rich", specifier = ">=14.3.3" },
+    { name = "seaborn", specifier = ">=0.13.2" },
     { name = "seaborn", marker = "extra == 'plot'" },
 ]
 provides-extras = ["tests", "plot"]

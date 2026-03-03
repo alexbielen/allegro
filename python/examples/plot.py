@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from allegro.physical import bouncing_ball
-
+from allegro.physical import CommonBallElasticity
 
 def plot_bouncing_ball(
     height: float = 10.0,
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         height=1.0,
         velocity=0.0,
         gravity=None,
-        elasticity=0.75,
+        elasticity=CommonBallElasticity.Basketball,
         samples_per_second=100.0,
         max_time=15.0,
     )
