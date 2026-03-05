@@ -9,4 +9,6 @@ name = "allegro"
 crate-type = ["cdylib"]
 
 [dependencies]
+glam = "0.29"
 pyo3 = "0.24.0"
+rand = "0.10.0"

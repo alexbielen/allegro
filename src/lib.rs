@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+mod boids;
 mod error;
 mod numbers;
 mod physical;
@@ -26,6 +27,15 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pitchclass::invert, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::transpose_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
+
+    // boids module (boids.rs)
+    m.add_class::<boids::Dimensions>()?;
+    m.add_class::<boids::Universe>()?;
+    m.add_class::<boids::Boid>()?;
+    m.add_function(wrap_pyfunction!(
+        boids::create_boids_with_random_positions,
+        m
+    )?)?;
 
     Ok(())
 }
