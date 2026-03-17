@@ -5,6 +5,7 @@
 use glam::Vec3;
 use pyo3::prelude::*;
 use pyo3::pyfunction;
+use crate::error::require;
 
 /// ``Dimensions`` describes the axis-bounded bounding box that contains the
 /// flock. The bounds are used by ``Universe`` to steer boids back toward the
@@ -73,21 +74,9 @@ impl Dimensions {
         z_min: f32,
         z_max: f32,
     ) -> PyResult<Self> {
-        if x_min >= x_max {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "x_min must be less than x_max",
-            ));
-        }
-        if y_min >= y_max {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "y_min must be less than y_max",
-            ));
-        }
-        if z_min >= z_max {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "z_min must be less than z_max",
-            ));
-        }
+        require(x_min < x_max, "x_min must be less than x_max")?;
+        require(y_min < y_max, "y_min must be less than y_max")?;
+        require(z_min < z_max, "z_min must be less than z_max")?;
         Ok(Self {
             x_min,
             x_max,

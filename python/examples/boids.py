@@ -5,19 +5,18 @@ Run this module directly to see a basic flocking animation:
     python -m allegro.examples.boids
 
 This example uses ``matplotlib`` for a lightweight 3D scatter plot animation.
-It deliberately keeps the rendering code simple so the focus stays on the
-simulation API (``Universe``, ``Dimensions``, ``Boid``).
 """
 
 from __future__ import annotations
 
-import argparse
 from dataclasses import dataclass
-from typing import Iterable, List
+from enum import Enum
+from typing import Iterable, List, Optional
 
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  - side-effect import
+import typer
 
 from allegro.boids import (
     Boid,
@@ -30,13 +29,62 @@ from allegro.boids import (
 @dataclass
 class BoidsConfig:
     """Configuration for the demo universe."""
-    flock_size: int = 80
+    flock_size: int = 150
     world_extent: float = 500.0
     cohesion_factor: float = 0.003
     separation_distance: float = 20.0
     alignment_factor: float = 0.05
-    bound_steer = 2.0
+    bound_steer: float = 2.0
     speed_limit: float | None = 12.0
+
+
+class Mode(str, Enum):
+    BASIC = "basic"
+    LOOSE = "loose"
+    MURMURATION = "murmuration"
+    BALANCED = "balanced"
+
+
+BASIC_CONFIG = BoidsConfig()
+
+
+LOOSE_CONFIG = BoidsConfig(
+    flock_size = 150,
+    world_extent = 500.0,
+    cohesion_factor = 0.002,
+    separation_distance = 25.0,
+    alignment_factor = 0.04,
+    bound_steer = 1.5,
+    speed_limit = 10.0,
+)
+
+MURMURATION_CONFIG = BoidsConfig(
+    flock_size = 150,
+    world_extent = 500.0,
+    cohesion_factor = 0.005,
+    separation_distance = 15.0,
+    alignment_factor = 0.07,
+    bound_steer = 2.0,
+    speed_limit = 11.0,
+)
+
+BALANCED_CONFIG = BoidsConfig(
+    flock_size = 150,
+    world_extent = 500.0,
+    cohesion_factor = 0.003,
+    separation_distance = 20.0,
+    alignment_factor = 0.05,
+    bound_steer = 2.0,
+    speed_limit = 12.0,
+)
+
+
+MODES: dict[Mode, BoidsConfig] = {
+    Mode.BASIC: BASIC_CONFIG,
+    Mode.LOOSE: LOOSE_CONFIG,
+    Mode.MURMURATION: MURMURATION_CONFIG,
+    Mode.BALANCED: BALANCED_CONFIG,
+}
 
 
 def make_universe(cfg: BoidsConfig) -> Universe:
@@ -96,7 +144,7 @@ def run_animation(cfg: BoidsConfig, *, interval_ms: int = 30) -> None:
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
-    ax.set_title("Boids (3D Rust-backed simulation)")
+    ax.set_title(f"Boids")
 
     # Keep a strong reference to the animation object so it is not
     # garbage-collected before ``plt.show()`` has a chance to render it.
@@ -113,38 +161,91 @@ def run_animation(cfg: BoidsConfig, *, interval_ms: int = 30) -> None:
     plt.show()
 
 
-def parse_args() -> BoidsConfig:
-    parser = argparse.ArgumentParser(description="3D boids visualization demo.")
-    parser.add_argument(
+def main(
+    mode: Optional[Mode] = typer.Option(
+        None,
+        "--mode",
+        help="Preset configuration: basic, loose, murmuration, or balanced.",
+    ),
+    flock_size: Optional[int] = typer.Option(
+        None,
         "--flock-size",
-        type=int,
-        default=BoidsConfig.flock_size,
-        help="Number of boids in the simulation (default: %(default)s).",
-    )
-    parser.add_argument(
+        help="Number of boids in the simulation.",
+    ),
+    world_extent: Optional[float] = typer.Option(
+        None,
         "--world-extent",
-        type=float,
-        default=BoidsConfig.world_extent,
-        help="Half-size of the cubic world bounds (default: %(default)s).",
-    )
-    parser.add_argument(
+        help="Half-size of the cubic world bounds.",
+    ),
+    cohesion_factor: Optional[float] = typer.Option(
+        None,
+        "--cohesion-factor",
+        help="Cohesion factor for boid flocking.",
+    ),
+    separation_distance: Optional[float] = typer.Option(
+        None,
+        "--separation-distance",
+        help="Minimum separation distance between boids.",
+    ),
+    alignment_factor: Optional[float] = typer.Option(
+        None,
+        "--alignment-factor",
+        help="Alignment factor for boid velocities.",
+    ),
+    bound_steer: Optional[float] = typer.Option(
+        None,
+        "--bound-steer",
+        help="Steering strength keeping boids within bounds.",
+    ),
+    speed_limit: Optional[float] = typer.Option(
+        None,
+        "--speed-limit",
+        help="Maximum boid speed.",
+    ),
+    interval_ms: int = typer.Option(
+        30,
         "--interval-ms",
-        type=int,
-        default=30,
-        help="Animation frame interval in milliseconds (default: %(default)s).",
-    )
-    args = parser.parse_args()
-    return BoidsConfig(
-        flock_size=args.flock_size,
-        world_extent=args.world_extent,
-    )
+        help="Animation frame interval in milliseconds.",
+    ),
+) -> None:
+    """Entry point for the boids visualization."""
+    config_values = {
+        "flock_size": flock_size,
+        "world_extent": world_extent,
+        "cohesion_factor": cohesion_factor,
+        "separation_distance": separation_distance,
+        "alignment_factor": alignment_factor,
+        "bound_steer": bound_steer,
+        "speed_limit": speed_limit,
+    }
 
+    if mode:
+        # Use preset mode, no individual config values allowed.
+        extra = [name for name, value in config_values.items() if value]
+        if extra:
+            typer.echo(f"Error: When using --mode you may not also specify: {', '.join(sorted(extra))}", err=True)
+            raise typer.Exit(code=1)
+        cfg = MODES[mode]
+    else:
+        # Full custom config, all values must be provided.
+        missing = [name for name, value in config_values.items() if not value]
+        if missing:
+            typer.echo(f"Error: When not using --mode you must provide all of:\n  {', '.join(sorted(missing))}", err=True)
+            raise typer.Exit(code=1)
 
-def main() -> None:
-    cfg = parse_args()
-    run_animation(cfg)
+        cfg = BoidsConfig(
+            flock_size=flock_size,  
+            world_extent=world_extent,  
+            cohesion_factor=cohesion_factor,  
+            separation_distance=separation_distance,  
+            alignment_factor=alignment_factor,  
+            bound_steer=bound_steer,  
+            speed_limit=speed_limit,  
+        )
+
+    run_animation(cfg, interval_ms=interval_ms)
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
 

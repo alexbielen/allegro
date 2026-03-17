@@ -6,6 +6,7 @@ mod numbers;
 mod physical;
 mod pitchclass;
 mod quadratic;
+mod time;
 
 /// A Python module implemented in Rust.
 #[pymodule]
@@ -27,6 +28,9 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pitchclass::invert, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::transpose_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
+
+    // time module (time.rs)
+    m.add_function(wrap_pyfunction!(time::bpm_to_seconds, m)?)?;
 
     // boids module (boids.rs)
     m.add_class::<boids::Dimensions>()?;
