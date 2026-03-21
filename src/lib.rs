@@ -31,6 +31,7 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     // time module (time.rs)
     m.add_function(wrap_pyfunction!(time::bpm_to_seconds, m)?)?;
+    m.add_function(wrap_pyfunction!(time::rhythm_to_seconds, m)?)?;
 
     // boids module (boids.rs)
     m.add_class::<boids::Dimensions>()?;
