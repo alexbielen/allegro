@@ -1,5 +1,134 @@
 use pyo3::prelude::*;
 
+use crate::forte_lookup::forte_for_normal_form;
+use crate::utils::has_unique_elements;
+
+/// Unordered set of distinct pitch classes (0–11), up to 12 elements.
+/// `pcs` is stored sorted ascending.
+#[pyclass]
+#[derive(Clone)]
+pub struct PitchClassSet {
+    pub pcs: Vec<i8>,
+}
+
+#[pymethods]
+impl PitchClassSet {
+    #[new]
+    #[pyo3(signature = (pitch_classes))]
+    fn new(pitch_classes: Vec<i8>) -> PyResult<Self> {
+        if pitch_classes.len() > 12 {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "at most 12 pitch classes allowed",
+            ));
+        }
+
+        if !has_unique_elements(&pitch_classes) {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "pitch classes must be unique",
+            ));
+        }
+
+        for &pc in &pitch_classes {
+            pc_guard(pc)?;
+        }
+
+        Ok(Self { pcs: pitch_classes })
+    }
+
+    fn normal_form(&self) -> Vec<i8> {
+        let sorted_pcs = sorted_pitch_classes(&self.pcs);
+        let n = sorted_pcs.len();
+        match n {
+            0 => vec![],
+            1 => vec![sorted_pcs[0].rem_euclid(12)],
+            _ => std::iter::once(get_rotations(&sorted_pcs))
+                .map(minimize_span)
+                .map(|candidates| break_ties(candidates, n))
+                .map(|winners| {
+                    wrap_pitch_classes_line(
+                        winners
+                            .first()
+                            .expect("at least one rotation survives tie-breaking"),
+                    )
+                })
+                .next()
+                .expect("once() always yields one item"),
+        }
+    }
+
+    fn prime_form(&self) -> Vec<i8> {
+        unimplemented!()
+    }
+
+    fn forte_num(&self) -> PyResult<String> {
+        let nf = self.normal_form();
+        forte_for_normal_form(&nf)
+            .map(str::to_string)
+            .ok_or_else(|| {
+                pyo3::exceptions::PyValueError::new_err("normal form not found in Forte catalog")
+            })
+    }
+}
+
+fn sorted_pitch_classes(pcs: &[i8]) -> Vec<i8> {
+    let mut v = pcs.to_vec();
+    v.sort_unstable();
+    v
+}
+
+/// All cyclic rotations as linear pitch rows (`src/specs/pitchclass.md`).
+///
+/// `sorted_pcs` must have length ≥ 2.
+fn get_rotations(sorted_pcs: &[i8]) -> Vec<Vec<i8>> {
+    let n = sorted_pcs.len();
+    (0..n).map(|i| rotation(sorted_pcs, i)).collect()
+}
+
+/// One rotation: pivot `start` splits `sorted_pcs` — suffix in base octave, prefix raised by +12.
+fn rotation(sorted_pcs: &[i8], start: usize) -> Vec<i8> {
+    let mut out: Vec<i8> = sorted_pcs[start..].to_vec();
+    out.extend(sorted_pcs[..start].iter().map(|&p| p + 12));
+    out
+}
+
+/// Step 1 — keep rotations with minimal total span `r[n-1] - r[0]`.
+fn minimize_span(rotations: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
+    let n = rotations[0].len();
+    let min_span = rotations
+        .iter()
+        .map(|r| r[n - 1] - r[0])
+        .min()
+        .expect("non-empty rotations");
+    rotations
+        .into_iter()
+        .filter(|r| r[n - 1] - r[0] == min_span)
+        .collect()
+}
+
+/// Step 2 — if several rotations tie, narrow using `r[n-i] - r[0]` for `i = 2..=n` (Python `r[-i]`).
+fn break_ties(mut candidates: Vec<Vec<i8>>, n: usize) -> Vec<Vec<i8>> {
+    if candidates.len() <= 1 {
+        return candidates;
+    }
+    for i in 2..=n {
+        let min_inner = candidates
+            .iter()
+            .map(|r| r[n - i] - r[0])
+            .min()
+            .expect("non-empty candidates");
+        candidates.retain(|r| r[n - i] - r[0] == min_inner);
+        if candidates.len() == 1 {
+            break;
+        }
+    }
+    candidates
+}
+
+/// Map linear pitches back to canonical pitch-class integers (`p % 12`, Euclidean modulus).
+fn wrap_pitch_classes_line(line: &[i8]) -> Vec<i8> {
+    line.iter().map(|&p| p.rem_euclid(12)).collect()
+}
+
 fn semitone_guard(semitones: i8) -> PyResult<()> {
     if !(-11..=11).contains(&semitones) {
         return Err(pyo3::exceptions::PyValueError::new_err(

@@ -2,11 +2,13 @@ use pyo3::prelude::*;
 
 mod boids;
 mod error;
+mod forte_lookup;
 mod numbers;
 mod physical;
 mod pitchclass;
 mod quadratic;
 mod time;
+mod utils;
 
 /// A Python module implemented in Rust.
 #[pymodule]
@@ -28,6 +30,7 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pitchclass::invert, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::transpose_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
+    m.add_class::<pitchclass::PitchClassSet>()?;
 
     // time module (time.rs)
     m.add_function(wrap_pyfunction!(time::bpm_to_seconds, m)?)?;

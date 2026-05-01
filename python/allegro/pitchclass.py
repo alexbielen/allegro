@@ -1,5 +1,17 @@
-"""Pitch class namespace: transpose, invert."""
+"""Pitch class namespace: transpose, invert, PitchClassSet."""
 
-from .allegro import invert, invert_ordered_set, transpose, transpose_ordered_set
+from .allegro import (
+    PitchClassSet,
+    invert,
+    invert_ordered_set,
+    transpose,
+    transpose_ordered_set,
+)
 
-__all__ = ["invert", "invert_ordered_set", "transpose", "transpose_ordered_set"]
+__all__ = [
+    "PitchClassSet",
+    "invert",
+    "invert_ordered_set",
+    "transpose",
+    "transpose_ordered_set",
+]

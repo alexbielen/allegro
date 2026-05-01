@@ -6,6 +6,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from allegro.pitchclass import (
+    PitchClassSet,
     invert,
     invert_ordered_set,
     transpose,
@@ -176,3 +177,36 @@ class TestOrderedSetBenchmarks:
             return [invert(pc) for pc in ordered_set]
 
         benchmark(f, self.ORDERED_SET)
+
+
+class TestPitchClassSet:
+    """Normal form follows `src/specs/pitchclass.md` (rotation + `% 12`)."""
+
+    def test_empty_set_normal_form(self):
+        assert PitchClassSet([]).normal_form() == []
+
+    def test_singleton_normal_form(self):
+        assert PitchClassSet([5]).normal_form() == [5]
+
+    def test_normal_form_spec_0_2_10(self):
+        """Tightest span rotation ends with `{10,12,14}` mapped by `% 12`."""
+        s = PitchClassSet([0, 2, 10])
+        assert s.normal_form() == [10, 0, 2]
+
+    def test_major_triad_normal_form(self):
+        assert PitchClassSet([0, 4, 7]).normal_form() == [0, 4, 7]
+
+    def test_minor_triad_normal_form(self):
+        assert PitchClassSet([0, 3, 7]).normal_form() == [0, 3, 7]
+
+    def test_diatonic_normal_form_matches_spec_rotation(self):
+        s = PitchClassSet([0, 2, 4, 5, 7, 9, 11])
+        assert s.normal_form() == [11, 0, 2, 4, 5, 7, 9]
+
+    def test_duplicate_raises(self):
+        with pytest.raises(ValueError, match="unique"):
+            PitchClassSet([0, 0, 1])
+
+    def test_out_of_range_raises(self):
+        with pytest.raises(ValueError, match="0"):
+            PitchClassSet([12])
