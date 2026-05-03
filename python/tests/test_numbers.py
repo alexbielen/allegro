@@ -213,6 +213,15 @@ class TestFitListPerformance:
 
 # --- quantize ---
 
+
+def round_f64_half_away_from_zero(x: float) -> float:
+    """Nearest integer; halfway cases away from zero (matches Rust ``f64::round``)."""
+    if x == 0.0:
+        return x
+    ax = abs(x)
+    return math.copysign(math.floor(ax + 0.5), x)
+
+
 finite_floats = st.floats(
     min_value=MIN_FINITE,
     max_value=MAX_FINITE,
@@ -275,7 +284,7 @@ class TestQuantize:
     def test_result_is_multiple_of_step(self, step: float, value: float):
         assume(is_safe_quantize_pair(step, value))
         result = quantize(step, value)
-        approx_multiple = round(value / step)
+        approx_multiple = round_f64_half_away_from_zero(value / step)
         assert math.isclose(result, approx_multiple * step)
 
     @given(step=positive_finite, value=finite_floats)
