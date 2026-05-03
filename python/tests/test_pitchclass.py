@@ -5,6 +5,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
+from music21 import chord
+
 from allegro.pitchclass import (
     PitchClassSet,
     invert,
@@ -18,6 +20,11 @@ from allegro.pitchclass import (
 def pc_strategy(draw):
     return draw(st.integers(min_value=0, max_value=11))
 
+
+@st.composite
+def pitch_class_set_strategy(draw):
+    # no duplicates
+    return draw(st.lists(pc_strategy(), min_size=0, max_size=12, unique=True))
 
 @st.composite
 def by_semitones_strategy(draw):
@@ -210,3 +217,61 @@ class TestPitchClassSet:
     def test_out_of_range_raises(self):
         with pytest.raises(ValueError, match="0"):
             PitchClassSet([12])
+
+
+
+class TestPitchClassSetNormalFormConsistencyWithMusic21:
+    @given(pitch_class_set_strategy())
+    def test_consistency_with_music21(self, pitch_class_set: list[int]):
+
+        m21_chord = chord.Chord(pitch_class_set)
+
+        forte_rahn_disagreements = [
+            "5-20A",
+            "5-20B",
+            "5-32B",
+            "6-29",
+            "6-31A",
+            "6-31B",
+            "6-44B",
+            "7-18A",
+            "7-18B",
+            "7-20A",
+            "7-20B",
+            "8-22B",
+            "8-26",
+            "8-27B",
+            "9-7B",
+            "9-8B",
+            "9-11B",
+        ]
+
+        if pitch_class_set and m21_chord.forteClass in forte_rahn_disagreements:
+            print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
+
+
+        else:
+            assert PitchClassSet(pitch_class_set).normal_form() == chord.Chord(pitch_class_set).normalOrder
+
+class TestPitchClassSetNormalFormBenchmark:
+    """Benchmarks for normal form functions. Run with: pytest --benchmark-only tests/test_pitchclass.py -k Benchmark"""
+
+
+    def test_benchmark_normal_form(self, benchmark):
+
+        pcs = pitch_class_set_strategy().example()
+
+
+        # warm up
+        PitchClassSet(pcs).normal_form()
+        benchmark(PitchClassSet(pcs).normal_form)
+
+    def test_benchmark_normal_order_music21(self, benchmark):
+        pcs = pitch_class_set_strategy().example()
+
+        def f(pcs):
+            return chord.Chord(pcs).normalOrder
+
+        # warm up
+        f(pcs)
+        benchmark(f, pcs)

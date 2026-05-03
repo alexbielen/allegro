@@ -42,6 +42,7 @@ exclude_dirs = ["python/tests", "python/allegro/_build_scripts.py"]
 dev = [
     "hypothesis>=6.151.5",
     "maturin>=1.8,<2.0",
+    "music21>=9.9.1",
     "pytest>=9.0.2",
     "pytest-benchmark>=5.0.0",
     "ruff>=0.8.0",
