@@ -16,6 +16,27 @@ from allegro.pitchclass import (
 )
 
 
+FORT_RAHN_DISAGREEMENTS = [
+            "5-20A",
+            "5-20B",
+            "5-32B",
+            "6-29",
+            "6-31A",
+            "6-31B",
+            "6-44B",
+            "7-18A",
+            "7-18B",
+            "7-20A",
+            "7-20B",
+            "8-22B",
+            "8-26",
+            "8-27B",
+            "9-7B",
+            "9-8B",
+            "9-11B",
+        ]
+
+
 @st.composite
 def pc_strategy(draw):
     return draw(st.integers(min_value=0, max_value=11))
@@ -210,6 +231,16 @@ class TestPitchClassSet:
         s = PitchClassSet([0, 2, 4, 5, 7, 9, 11])
         assert s.normal_form() == [11, 0, 2, 4, 5, 7, 9]
 
+    def test_prime_form_triads_and_transpose(self):
+        # Compare normal-order candidates after each is transposed to 0 (spec); major/minor
+        # share one inverted form so both canonicalize to [0, 3, 7].
+        assert PitchClassSet([0, 4, 7]).prime_form() == [0, 3, 7]
+        assert PitchClassSet([0, 3, 7]).prime_form() == [0, 3, 7]
+        assert PitchClassSet([0, 2, 10]).prime_form() == [0, 2, 4]
+
+    def test_prime_form_cluster_0_2_3(self):
+        assert PitchClassSet([0, 2, 3]).prime_form() == [0, 1, 3]
+
     def test_duplicate_raises(self):
         with pytest.raises(ValueError, match="unique"):
             PitchClassSet([0, 0, 1])
@@ -226,32 +257,27 @@ class TestPitchClassSetNormalFormConsistencyWithMusic21:
 
         m21_chord = chord.Chord(pitch_class_set)
 
-        forte_rahn_disagreements = [
-            "5-20A",
-            "5-20B",
-            "5-32B",
-            "6-29",
-            "6-31A",
-            "6-31B",
-            "6-44B",
-            "7-18A",
-            "7-18B",
-            "7-20A",
-            "7-20B",
-            "8-22B",
-            "8-26",
-            "8-27B",
-            "9-7B",
-            "9-8B",
-            "9-11B",
-        ]
-
-        if pitch_class_set and m21_chord.forteClass in forte_rahn_disagreements:
+        if pitch_class_set and m21_chord.forteClass in FORT_RAHN_DISAGREEMENTS:
             print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
 
 
         else:
             assert PitchClassSet(pitch_class_set).normal_form() == chord.Chord(pitch_class_set).normalOrder
+
+
+class TestPitchClassSetPrimeFormConsistencyWithMusic21:
+    @given(pitch_class_set_strategy())
+    def test_consistency_with_music21(self, pitch_class_set: list[int]):
+
+        m21_chord = chord.Chord(pitch_class_set)
+
+        if pitch_class_set and m21_chord.forteClass in FORT_RAHN_DISAGREEMENTS:
+            print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
+
+
+        else:
+            assert PitchClassSet(pitch_class_set).prime_form() == m21_chord.primeForm 
+
 
 class TestPitchClassSetNormalFormBenchmark:
     """Benchmarks for normal form functions. Run with: pytest --benchmark-only tests/test_pitchclass.py -k Benchmark"""

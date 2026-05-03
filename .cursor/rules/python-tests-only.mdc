@@ -1,0 +1,10 @@
+---
+description: Automated tests run in Python (pytest), not Rust unit tests
+alwaysApply: true
+---
+
+# Testing
+
+Add and extend automated tests under `python/tests/` (pytest). Do **not** add `#[cfg(test)]` modules or Rust unit tests in `src/` unless the user explicitly asks for them.
+
+After changing Rust code used by PyO3, rebuild the extension (`maturin develop`) before relying on Python test results.

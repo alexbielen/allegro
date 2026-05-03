@@ -1,11 +1,3 @@
-# Normal form
-
-Reference for `PitchClassSet::normal_form` in Rust (`pitchclass.rs`: `get_normal_form`, helpers `rotation` / `wrap_pitch_classes_line`).
-
-Python’s `p % 12` on negative values uses “floor” modulus; Rust uses Euclidean remainder `p.rem_euclid(12)` so both match for integer pitch lines used here (`p >= -11` effectively never negative in our pipeline).
-
-## Python
-
 ```python
 def get_normal_form(pcs):
     """Calculates the normal form of a pitch class set."""
@@ -32,6 +24,12 @@ def get_normal_form(pcs):
     return [p % 12 for p in candidates[0]]
 ```
 
-## Rust (matching structure)
+Rahn Prime Form Calculation Steps
 
-Rust keeps the same steps: build `rotations`, filter by `r[n-1] - r[0]`, optionally narrow with `r[n - i] - r[0]` for `i in 2..=n`, then map each coordinate with `rem_euclid(12)`. Empty set yields `[]`; a single pc yields `[pc.rem_euclid(12)]` (same idea as `% 12` for non-negative pcs).
+Find the Normal Order: Arrange the pitch classes in ascending order that creates the smallest interval between the first and last note.
+
+Transpose to 0 (\(T\_{n}\)): Transpose the normal order so it starts on 0 (e.g., if the set is \([2, 4, 7]\), it becomes \([0, 2, 5]\)).
+
+Invert and Rearrange (\(T\_{n}I\)): Invert the set (replace each number \(x\) with \(12-x\), or \(0-x\)), put it into normal order, and transpose it to start on 0.
+
+Compare and Choose: Compare the results of Step 2 and Step 3. Select the version that is most compact on the left side.Note: If both are equally packed, choose the one with smaller intervals at the beginning.

@@ -36,28 +36,21 @@ impl PitchClassSet {
     }
 
     fn normal_form(&self) -> Vec<i8> {
-        let sorted_pcs = sorted_pitch_classes(&self.pcs);
-        let n = sorted_pcs.len();
-        match n {
-            0 => vec![],
-            1 => vec![sorted_pcs[0].rem_euclid(12)],
-            _ => std::iter::once(get_rotations(&sorted_pcs))
-                .map(minimize_span)
-                .map(|candidates| break_ties(candidates, n))
-                .map(|winners| {
-                    wrap_pitch_classes_line(
-                        winners
-                            .first()
-                            .expect("at least one rotation survives tie-breaking"),
-                    )
-                })
-                .next()
-                .expect("once() always yields one item"),
-        }
+        get_normal_form(&sorted_pitch_classes(&self.pcs))
     }
 
+    /// Rahn prime form (`src/specs/pitchclass.md`): normal order of `S`, transpose to 0;
+    /// normal order of `I₀(S)`, transpose to 0; take the lexicographically smaller row
+    /// (more compact to the left).
     fn prime_form(&self) -> Vec<i8> {
-        unimplemented!()
+        let sorted = sorted_pitch_classes(&self.pcs);
+        let nf = get_normal_form(&sorted);
+        let mut inverted: Vec<i8> = sorted.iter().copied().map(invert_pc).collect();
+        inverted.sort_unstable();
+        let nf_inv = get_normal_form(&inverted);
+        let prime_from_set = transpose_prime_to_zero(&nf);
+        let prime_from_inv = transpose_prime_to_zero(&nf_inv);
+        std::cmp::min(prime_from_set, prime_from_inv)
     }
 
     fn forte_num(&self) -> PyResult<String> {
@@ -76,6 +69,36 @@ fn sorted_pitch_classes(pcs: &[i8]) -> Vec<i8> {
     v
 }
 
+/// Normal form from sorted distinct pitch classes (`src/specs/pitchclass.md`).
+fn get_normal_form(sorted_pcs: &[i8]) -> Vec<i8> {
+    let n = sorted_pcs.len();
+    match n {
+        0 => vec![],
+        1 => vec![sorted_pcs[0].rem_euclid(12)],
+        _ => std::iter::once(get_rotations(sorted_pcs))
+            .map(get_candidates)
+            .map(|candidates| break_ties(candidates, n))
+            .map(|winners| {
+                wrap_pitch_classes_line(
+                    winners
+                        .first()
+                        .expect("at least one rotation survives tie-breaking"),
+                )
+            })
+            .next()
+            .expect("once() always yields one item"),
+    }
+}
+
+/// Transpose a normal-order row so the first pitch class is 0 (`p - p₀` mod 12).
+fn transpose_prime_to_zero(line: &[i8]) -> Vec<i8> {
+    if line.is_empty() {
+        return vec![];
+    }
+    let t = line[0];
+    line.iter().map(|&p| (p - t).rem_euclid(12)).collect()
+}
+
 /// All cyclic rotations as linear pitch rows (`src/specs/pitchclass.md`).
 ///
 /// `sorted_pcs` must have length ≥ 2.
@@ -92,7 +115,7 @@ fn rotation(sorted_pcs: &[i8], start: usize) -> Vec<i8> {
 }
 
 /// Step 1 — keep rotations with minimal total span `r[n-1] - r[0]`.
-fn minimize_span(rotations: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
+fn get_candidates(rotations: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
     let n = rotations[0].len();
     let min_span = rotations
         .iter()
