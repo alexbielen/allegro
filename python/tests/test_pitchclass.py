@@ -9,6 +9,7 @@ from music21 import chord
 
 from allegro.pitchclass import (
     PitchClassSet,
+    interval_class,
     invert,
     invert_ordered_set,
     transpose,
@@ -252,6 +253,22 @@ class TestPitchClassSet:
         assert PitchClassSet([9]).forte_num() == "1-1"
         assert PitchClassSet(list(range(12))).forte_num() == "12-1"
 
+    def test_interval_class_vector_empty_and_singleton(self):
+        assert PitchClassSet([]).interval_vector() == [0, 0, 0, 0, 0, 0]
+        assert PitchClassSet([3]).interval_vector() == [0, 0, 0, 0, 0, 0]
+
+    def test_interval_class_vector_tetrachord_0123(self):
+        # 4-1 chromatic: six pairs with ic1×3, ic2×2, ic3×1
+        assert PitchClassSet([0, 1, 2, 3]).interval_vector() == [3, 2, 1, 0, 0, 0]
+
+    def test_interval_class_vector_triad(self):
+        # <001110> in order ic1..ic6
+        assert PitchClassSet([0, 4, 7]).interval_vector() == [0, 0, 1, 1, 1, 0]
+
+    def test_interval_class_vector_includes_complement_intervals(self):
+        # 0 and 11 -> directed 11 -> ic1
+        assert PitchClassSet([0, 11]).interval_vector() == [1, 0, 0, 0, 0, 0]
+
     def test_duplicate_raises(self):
         with pytest.raises(ValueError, match="unique"):
             PitchClassSet([0, 0, 1])
@@ -260,6 +277,26 @@ class TestPitchClassSet:
         with pytest.raises(ValueError, match="0"):
             PitchClassSet([12])
 
+
+
+class TestIntervalClass:
+    def test_unison_and_octave_equivalence(self):
+        assert interval_class(0) == 0
+        assert interval_class(12) == 0
+
+    def test_mod_twelve(self):
+        assert interval_class(13) == interval_class(1) == 1
+        assert interval_class(-1) == interval_class(11) == 1
+
+    def test_tritone(self):
+        assert interval_class(6) == 6
+
+
+class TestPitchClassSetIntervalVectorConsistencyWithMusic21:
+    @given(pitch_class_set_strategy())
+    def test_matches_music21(self, pitch_class_set: list[int]):
+        m21_chord = chord.Chord(pitch_class_set)
+        assert PitchClassSet(pitch_class_set).interval_vector() == list(m21_chord.intervalVector)
 
 
 class TestPitchClassSetNormalFormConsistencyWithMusic21:

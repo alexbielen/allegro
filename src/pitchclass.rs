@@ -75,8 +75,7 @@ impl PitchClassSet {
     ///
     ///     3. If multiple candidates remain, break ties by comparing intervals
     ///        from the left:
-    ///            - Compare (last - first)
-    ///            - Then (second-to-last - first)
+    ///            - Then (second-to-last - first), if still tied,
     ///            - Then (third-to-last - first), and so on
     ///        Keep only the most “left-packed” (most compact toward the beginning).
     ///
@@ -135,12 +134,43 @@ impl PitchClassSet {
                 )
             })
     }
+
+    /// Return the **interval-class vector** (six counts, Forte style).
+    ///
+    /// For every unordered pair of distinct pitch classes, form the smaller
+    /// pitch interval in semitones (1..=11), map it to an interval class
+    /// 1..=6, and increment the count at index ``ic - 1``.
+    fn interval_vector(&self) -> Vec<i8> {
+        interval_class_vector(&self.pcs)
+    }
 }
 
 fn sorted_pitch_classes(pcs: &[i8]) -> Vec<i8> {
     let mut v = pcs.to_vec();
     v.sort_unstable();
     v
+}
+
+/// Counts of interval classes 1..=6 for all unordered pairs in the set.
+fn interval_class_vector(pcs: &[i8]) -> Vec<i8> {
+    let sorted = sorted_pitch_classes(pcs);
+    let n = sorted.len();
+    let mut counts = [0i8; 6];
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let d = sorted[j] - sorted[i];
+            let ic = semitones_to_interval_class(d);
+            counts[(ic - 1) as usize] += 1;
+        }
+    }
+    counts.to_vec()
+}
+
+/// Map a pitch interval in semitones (1..=11) to its interval class (1..=6).
+#[inline]
+fn semitones_to_interval_class(d: i8) -> i8 {
+    debug_assert!((1..=11).contains(&d));
+    if d > 6 { 12 - d } else { d }
 }
 
 /// Normal form from sorted distinct pitch classes (`src/specs/pitchclass.md`).
@@ -346,6 +376,21 @@ pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult
     Ok(out)
 }
 
+/// Invert an ordered pitch-class row around 0.
+///
+/// Each pitch class in the ordered set is inverted by subtracting it from 12
+/// and wrapping the result modulo 12. The order of the input row is preserved.
+///
+/// Args:
+///     ordered_set (list[int]): The ordered pitch classes to invert.
+///         Each pitch class must be in the range 0–11.
+///
+/// Returns:
+///     list[int]: The inverted ordered set, with each pitch class wrapped to
+///     the range 0–11.
+///
+/// Raises:
+///     ValueError: If any pitch class is outside the range 0–11.
 #[pyfunction]
 #[pyo3(signature = (ordered_set))]
 pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
@@ -355,4 +400,18 @@ pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
         out.push(invert_pc(pc));
     }
     Ok(out)
+}
+
+/// Map a pitch interval (in semitones, any representative mod 12) to interval class 0–6.
+///
+/// ``0`` means unison/octave (interval ≡ 0 mod 12); classes ``1``–``6`` are the usual
+/// interval classes for distinct pitch classes.
+#[pyfunction]
+#[pyo3(signature = (interval))]
+pub fn interval_class(interval: i8) -> PyResult<i8> {
+    let d = interval.rem_euclid(12);
+    if d == 0 {
+        return Ok(0);
+    }
+    Ok(semitones_to_interval_class(d))
 }

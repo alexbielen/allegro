@@ -2,6 +2,7 @@
 
 from .allegro import (
     PitchClassSet,
+    interval_class,
     invert,
     invert_ordered_set,
     transpose,
@@ -10,6 +11,7 @@ from .allegro import (
 
 __all__ = [
     "PitchClassSet",
+    "interval_class",
     "invert",
     "invert_ordered_set",
     "transpose",

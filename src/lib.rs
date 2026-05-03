@@ -30,6 +30,7 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pitchclass::invert, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::transpose_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
+    m.add_function(wrap_pyfunction!(pitchclass::interval_class, m)?)?;
     m.add_class::<pitchclass::PitchClassSet>()?;
 
     // time module (time.rs)
