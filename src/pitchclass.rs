@@ -3,8 +3,25 @@ use pyo3::prelude::*;
 use crate::forte_lookup::forte_for_prime_form;
 use crate::utils::has_unique_elements;
 
-/// Unordered set of distinct pitch classes (0–11), up to 12 elements.
-/// `pcs` is stored sorted ascending.
+/// Unordered set of distinct pitch classes.
+///
+/// `PitchClassSet` represents a set-class-style collection of pitch classes,
+/// where each pitch class must be unique and in the range 0–11.
+///
+/// Args:
+///     pitch_classes (list[int]): The pitch classes in the set.
+///         Each value must be unique and in the range 0–11.
+///         At most 12 pitch classes are allowed.
+///
+/// Raises:
+///     ValueError: If more than 12 pitch classes are provided.
+///     ValueError: If any pitch class is duplicated.
+///     ValueError: If any pitch class is outside the range 0–11.
+///
+/// Notes:
+///     Although this type represents an unordered set, the current input order
+///     is preserved internally. Methods that require sorted pitch classes sort
+///     internally before computing their results.
 #[pyclass]
 #[derive(Clone)]
 pub struct PitchClassSet {
@@ -13,15 +30,23 @@ pub struct PitchClassSet {
 
 #[pymethods]
 impl PitchClassSet {
+    /// Create a new pitch-class set.
+    ///
+    /// Args:
+    ///     pitch_classes (list[int]): The pitch classes in the set.
+    ///         Each value must be unique and in the range 0–11.
+    ///         At most 12 pitch classes are allowed.
+    ///
+    /// Returns:
+    ///     PitchClassSet: A new pitch-class set.
+    ///
+    /// Raises:
+    ///     ValueError: If more than 12 pitch classes are provided.
+    ///     ValueError: If any pitch class is duplicated.
+    ///     ValueError: If any pitch class is outside the range 0–11.
     #[new]
     #[pyo3(signature = (pitch_classes))]
     fn new(pitch_classes: Vec<i8>) -> PyResult<Self> {
-        if pitch_classes.len() > 12 {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "at most 12 pitch classes allowed",
-            ));
-        }
-
         if !has_unique_elements(&pitch_classes) {
             return Err(pyo3::exceptions::PyValueError::new_err(
                 "pitch classes must be unique",
@@ -35,13 +60,50 @@ impl PitchClassSet {
         Ok(Self { pcs: pitch_classes })
     }
 
+    /// Compute the normal form of the pitch-class set.
+    ///
+    /// The normal form is the most “compact” ordering of the set when treated as
+    /// an ascending scale within a single octave.
+    ///
+    /// Algorithm:
+    ///     1. Generate all cyclic rotations of the sorted pitch classes. Each
+    ///        rotation is interpreted as an ascending pitch sequence (wrapping
+    ///        earlier elements up an octave).
+    ///
+    ///     2. Select the rotation(s) with the smallest total span:
+    ///        (last_pitch - first_pitch).
+    ///
+    ///     3. If multiple candidates remain, break ties by comparing intervals
+    ///        from the left:
+    ///            - Compare (last - first)
+    ///            - Then (second-to-last - first)
+    ///            - Then (third-to-last - first), and so on
+    ///        Keep only the most “left-packed” (most compact toward the beginning).
+    ///
+    ///     4. If a tie still remains, choose the ordering whose first pitch class
+    ///        is smallest.
+    ///
+    ///     5. Finally, wrap all pitches modulo 12 to return pitch classes.
+    ///
+    /// Returns:
+    ///     list[int]: The normal form of the set as pitch classes in the range 0–11.
+    ///
+    /// Notes:
+    ///     This implementation follows the standard post-tonal theory definition
+    ///     (Rahn/Straus style) and corresponds to the algorithm described in
+    ///     `src/specs/pitchclass.md`.
     fn normal_form(&self) -> Vec<i8> {
         get_normal_form(&sorted_pitch_classes(&self.pcs))
     }
 
-    /// Rahn prime form (`src/specs/pitchclass.md`): normal order of `S`, transpose to 0;
-    /// normal order of `I₀(S)`, transpose to 0; take the lexicographically smaller row
-    /// (more compact to the left).
+    /// Compute the Rahn prime form of the pitch-class set.
+    ///
+    /// This computes the normal form of the set and the normal form of its
+    /// inversion, transposes both so that they begin on 0, and returns the
+    /// lexicographically smaller result.
+    ///
+    /// Returns:
+    ///     list[int]: The prime form of the set as pitch classes in the range 0–11.
     fn prime_form(&self) -> Vec<i8> {
         let sorted = sorted_pitch_classes(&self.pcs);
         let nf = get_normal_form(&sorted);
@@ -53,6 +115,16 @@ impl PitchClassSet {
         std::cmp::min(prime_from_set, prime_from_inv)
     }
 
+    /// Look up the Forte number for the pitch-class set.
+    ///
+    /// The set is converted to Rahn prime form and then matched against the Forte
+    /// catalog.
+    ///
+    /// Returns:
+    ///     str: The Forte number for the set.
+    ///
+    /// Raises:
+    ///     ValueError: If the prime form is not found in the Forte catalog.
     fn forte_num(&self) -> PyResult<String> {
         let prime = self.prime_form();
         forte_for_prime_form(&prime)
@@ -242,6 +314,25 @@ pub fn transpose(by_semitones: i8, pc: i8) -> PyResult<i8> {
     Ok(wrap_pc_0_11(by_semitones + pc))
 }
 
+/// Transpose an ordered pitch-class row by a given number of semitones.
+///
+/// Each pitch class in the ordered set is shifted by the given number of
+/// semitones, preserving the order of the input row. Results are wrapped
+/// modulo 12.
+///
+/// Args:
+///     by_semitones (int): The number of semitones to transpose by.
+///         Must be in the range -11 to 11.
+///     ordered_set (list[int]): The ordered pitch classes to transpose.
+///         Each pitch class must be in the range 0–11.
+///
+/// Returns:
+///     list[int]: The transposed ordered set, with each pitch class wrapped
+///     to the range 0–11.
+///
+/// Raises:
+///     ValueError: If ``by_semitones`` is outside the range -11 to 11.
+///     ValueError: If any pitch class is outside the range 0–11.
 #[pyfunction]
 #[pyo3(signature = (by_semitones, ordered_set))]
 pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
