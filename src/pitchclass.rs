@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use crate::forte_lookup::forte_for_normal_form;
+use crate::forte_lookup::forte_for_prime_form;
 use crate::utils::has_unique_elements;
 
 /// Unordered set of distinct pitch classes (0–11), up to 12 elements.
@@ -54,11 +54,13 @@ impl PitchClassSet {
     }
 
     fn forte_num(&self) -> PyResult<String> {
-        let nf = self.normal_form();
-        forte_for_normal_form(&nf)
+        let prime = self.prime_form();
+        forte_for_prime_form(&prime)
             .map(str::to_string)
             .ok_or_else(|| {
-                pyo3::exceptions::PyValueError::new_err("normal form not found in Forte catalog")
+                pyo3::exceptions::PyValueError::new_err(
+                    "prime form not found in Forte catalog (expected Wikipedia/Rahn prime column)",
+                )
             })
     }
 }

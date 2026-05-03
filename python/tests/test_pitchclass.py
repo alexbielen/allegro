@@ -241,6 +241,17 @@ class TestPitchClassSet:
     def test_prime_form_cluster_0_2_3(self):
         assert PitchClassSet([0, 2, 3]).prime_form() == [0, 1, 3]
 
+    def test_forte_num_matches_wikipedia_rahn_prime_column(self):
+        # Major/minor triads share set class 3-11 (minor prime form [0,3,7] on Wikipedia).
+        assert PitchClassSet([0, 4, 7]).forte_num() == "3-11A"
+        assert PitchClassSet([0, 3, 7]).forte_num() == "3-11A"
+        assert PitchClassSet([0, 1, 2, 3, 4, 5]).forte_num() == "6-1"
+
+    def test_forte_num_edge_cardinalities(self):
+        assert PitchClassSet([]).forte_num() == "0-1"
+        assert PitchClassSet([9]).forte_num() == "1-1"
+        assert PitchClassSet(list(range(12))).forte_num() == "12-1"
+
     def test_duplicate_raises(self):
         with pytest.raises(ValueError, match="unique"):
             PitchClassSet([0, 0, 1])
@@ -259,10 +270,8 @@ class TestPitchClassSetNormalFormConsistencyWithMusic21:
 
         if pitch_class_set and m21_chord.forteClass in FORT_RAHN_DISAGREEMENTS:
             print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
-
-
         else:
-            assert PitchClassSet(pitch_class_set).normal_form() == chord.Chord(pitch_class_set).normalOrder
+            assert PitchClassSet(pitch_class_set).normal_form() == m21_chord.normalOrder 
 
 
 class TestPitchClassSetPrimeFormConsistencyWithMusic21:
@@ -273,8 +282,6 @@ class TestPitchClassSetPrimeFormConsistencyWithMusic21:
 
         if pitch_class_set and m21_chord.forteClass in FORT_RAHN_DISAGREEMENTS:
             print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
-
-
         else:
             assert PitchClassSet(pitch_class_set).prime_form() == m21_chord.primeForm 
 
