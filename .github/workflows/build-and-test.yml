@@ -48,6 +48,15 @@ jobs:
           unset RUSTC_WRAPPER
           rustup component add llvm-tools-preview
           ./scripts/rust_coverage.sh
+      # Optional: add CODECOV_TOKEN in repo secrets for private repos or if tokenless upload fails.
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: target/rust-coverage/lcov.info
+          disable_search: true
+          flags: rust
+          fail_ci_if_error: true
       - name: Upload Rust coverage HTML
         uses: actions/upload-artifact@v4
         with:

@@ -9,7 +9,8 @@
 # If the build fails with "posix_spawn failed: Resource temporarily unavailable", lower
 # parallelism:  CARGO_BUILD_JOBS=2 ./scripts/rust_coverage.sh
 #
-# Summary prints to stdout; HTML report: target/rust-coverage/html/index.html
+# Summary prints to stdout; HTML report: target/rust-coverage/html/index.html;
+# LCOV tracefile: target/rust-coverage/lcov.info
 #
 # If you `source` this file, RUSTFLAGS / LLVM_PROFILE_FILE are restored on exit
 # so your shell is not left in "coverage" mode (which can spawn default_*.profraw
@@ -121,8 +122,17 @@ rm -rf "$HTML_OUT"
 	--format=html \
 	--output-dir="$HTML_OUT"
 
+LCOV_OUT="$COV_DIR/lcov.info"
+"$COV" export \
+	--ignore-filename-regex="$IGNORE" \
+	--instr-profile="$COV_DIR/merged.profdata" \
+	--object "$SO" \
+	--format=lcov \
+	> "$LCOV_OUT"
+
 echo ""
 echo "HTML report: file://$HTML_OUT/index.html"
+echo "LCOV (e.g. Codecov): $LCOV_OUT"
 
 # Rust coverage uses -Cinstrument-coverage; the installed .so must be replaced with a
 # normal release build before you run pytest without LLVM_PROFILE_FILE (otherwise
