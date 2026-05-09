@@ -43,8 +43,11 @@ def run_pytest(
 
 
 def run_maturin_develop(root: Path, optimize: bool = False) -> None:
+    cmd = [sys.executable, "-m", "maturin", "develop"]
+    if optimize:
+        cmd.append("--release")
     subprocess.run(
-        [sys.executable, "-m", "maturin", "develop", "--release" if optimize else ""],
+        cmd,
         cwd=root,
         check=True,
     )
@@ -59,7 +62,6 @@ def find_project_root(root: Path) -> Path:
 
 
 def build_and_test() -> None:
-    # print Building Allegro with music notes icon
     print("[bold green]Building Allegro[/bold green] [music]🎵[/music]")
     root = Path.cwd()
     root = find_project_root(root)

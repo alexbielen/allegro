@@ -22,8 +22,8 @@ tests = ["pytest"]
 plot = ["seaborn", "matplotlib"]
 
 [project.scripts]
-build-and-test = "allegro._build_scripts:build_and_test"
-benchmarks = "allegro._build_scripts:run_benchmarks"
+build-and-test = "allegro_dev.build_scripts:build_and_test"
+benchmarks = "allegro_dev.build_scripts:run_benchmarks"
 
 [build-system]
 requires = ["maturin>=1.8,<2.0"]
@@ -36,7 +36,7 @@ python-source = "python"
 features = ["pyo3/extension-module"]
 
 [tool.bandit]
-exclude_dirs = ["python/tests", "python/allegro/_build_scripts.py"]
+exclude_dirs = ["python/tests", "python/allegro_dev"]
 
 [dependency-groups]
 dev = [
