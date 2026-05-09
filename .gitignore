@@ -35,6 +35,8 @@ pip-delete-this-directory.txt
 pip-selfcheck.json
 
 # Unit test / coverage reports
+# LLVM: fallback name when LLVM_PROFILE_FILE is unset (see scripts/rust_coverage.sh)
+/default*.profraw
 htmlcov/
 .tox/
 .coverage

@@ -25,7 +25,11 @@
         # create a Rust environment
         (final: prev: {
           rustToolchain = prev.rust-bin.stable.latest.default.override {
-            extensions = [ "rust-src" ];
+            extensions = [
+              "rust-src"
+              # llvm-profdata + llvm-cov (rustc sysroot) for ./scripts/rust_coverage.sh
+              "llvm-tools-preview"
+            ];
           };
         })
       ];
