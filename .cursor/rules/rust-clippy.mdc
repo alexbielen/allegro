@@ -1,0 +1,14 @@
+---
+description: Run cargo clippy after Rust changes (warnings as errors)
+alwaysApply: true
+---
+
+# Rust linting
+
+After changing Rust code (`src/`, `Cargo.toml`, etc.), run **Clippy** from the repo root and fix reported issues:
+
+```bash
+cargo clippy -- -D warnings
+```
+
+This matches `run_clippy` in `python/allegro_dev/build_scripts.py`. Run it before finishing a task that touches Rust, alongside `cargo check` when relevant.
