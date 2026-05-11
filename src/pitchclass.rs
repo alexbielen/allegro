@@ -59,6 +59,23 @@ impl PitchClassSet {
         Ok(Self { pcs: pitch_classes })
     }
 
+    /// Get the pitch classes in this set.
+    ///
+    /// The returned list contains the pitch classes currently stored by the set.
+    /// Values are represented as integers modulo 12, where 0 is C, 1 is C♯/D♭,
+    /// and so on.
+    ///
+    /// Returns:
+    ///     list[int]: The pitch classes in the set.
+    ///
+    /// Example:
+    ///     >>> pcs.pitch_classes
+    ///     [0, 2, 4, 7]
+    #[getter]
+    fn pitch_classes(&self) -> Vec<i8> {
+        self.pcs.clone()
+    }
+
     /// Compute the normal form of the pitch-class set.
     ///
     /// The normal form is the most “compact” ordering of the set when treated as

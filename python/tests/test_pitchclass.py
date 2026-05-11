@@ -211,6 +211,46 @@ class TestOrderedSetBenchmarks:
 class TestPitchClassSet:
     """Normal form follows `src/specs/pitchclass.md` (rotation + `% 12`)."""
 
+    def test_pitch_classes_empty_and_order(self):
+        assert PitchClassSet([]).pitch_classes == []
+        assert PitchClassSet([7, 0, 11]).pitch_classes == [7, 0, 11]
+
+    def test_pitch_classes_returns_independent_copy(self):
+        s = PitchClassSet([0, 4, 7])
+        pcs = s.pitch_classes
+        pcs.append(99)
+        assert s.pitch_classes == [0, 4, 7]
+
+    def test_transpose_by_identity(self):
+        s = PitchClassSet([0, 4, 7])
+        t = s.transpose_by(0)
+        assert t.pitch_classes == [0, 4, 7]
+        assert s.pitch_classes == [0, 4, 7]
+
+    def test_transpose_by_wraps_mod_twelve(self):
+        s = PitchClassSet([10, 11, 0])
+        assert s.transpose_by(3).pitch_classes == [1, 2, 3]
+        assert s.transpose_by(-2).pitch_classes == [8, 9, 10]
+
+    def test_transpose_by_does_not_mutate_original(self):
+        s = PitchClassSet([1, 5, 9])
+        _ = s.transpose_by(4)
+        assert s.pitch_classes == [1, 5, 9]
+
+    def test_transpose_by_out_of_range_raises(self):
+        s = PitchClassSet([0])
+        with pytest.raises(ValueError, match="by_semitones"):
+            s.transpose_by(-12)
+        with pytest.raises(ValueError, match="by_semitones"):
+            s.transpose_by(12)
+
+    @given(pitch_class_set_strategy(), by_semitones_strategy())
+    def test_transpose_by_matches_elementwise_transpose(self, pcs_list, tn):
+        s = PitchClassSet(pcs_list)
+        assert s.transpose_by(tn).pitch_classes == [
+            transpose(tn, pc) for pc in s.pitch_classes
+        ]
+
     def test_empty_set_normal_form(self):
         assert PitchClassSet([]).normal_form == []
 
