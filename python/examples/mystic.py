@@ -46,8 +46,8 @@ if __name__ == "__main__":
         cf_pcs = PitchClassSet([x % 12 for x in cantus_firmus])
         solution_pcs = PitchClassSet([x % 12 for x in allowed_intervals_permutations[0]])
 
-        print(cf_pcs.forte_num())
-        print(solution_pcs.forte_num())
+        print(cf_pcs.forte_num)
+        print(solution_pcs.forte_num)
     else:
         print("No valid solutions found")
 

@@ -17,7 +17,7 @@ from allegro.pitchclass import (
 )
 
 
-FORT_RAHN_DISAGREEMENTS = [
+FORTE_RAHN_DISAGREEMENTS = [
             "5-20A",
             "5-20B",
             "5-32B",
@@ -212,62 +212,87 @@ class TestPitchClassSet:
     """Normal form follows `src/specs/pitchclass.md` (rotation + `% 12`)."""
 
     def test_empty_set_normal_form(self):
-        assert PitchClassSet([]).normal_form() == []
+        assert PitchClassSet([]).normal_form == []
 
     def test_singleton_normal_form(self):
-        assert PitchClassSet([5]).normal_form() == [5]
+        assert PitchClassSet([5]).normal_form == [5]
 
     def test_normal_form_spec_0_2_10(self):
         """Tightest span rotation ends with `{10,12,14}` mapped by `% 12`."""
         s = PitchClassSet([0, 2, 10])
-        assert s.normal_form() == [10, 0, 2]
+        assert s.normal_form == [10, 0, 2]
 
     def test_major_triad_normal_form(self):
-        assert PitchClassSet([0, 4, 7]).normal_form() == [0, 4, 7]
+        assert PitchClassSet([0, 4, 7]).normal_form == [0, 4, 7]
 
     def test_minor_triad_normal_form(self):
-        assert PitchClassSet([0, 3, 7]).normal_form() == [0, 3, 7]
+        assert PitchClassSet([0, 3, 7]).normal_form == [0, 3, 7]
 
     def test_diatonic_normal_form_matches_spec_rotation(self):
         s = PitchClassSet([0, 2, 4, 5, 7, 9, 11])
-        assert s.normal_form() == [11, 0, 2, 4, 5, 7, 9]
+        assert s.normal_form == [11, 0, 2, 4, 5, 7, 9]
 
     def test_prime_form_triads_and_transpose(self):
         # Compare normal-order candidates after each is transposed to 0 (spec); major/minor
         # share one inverted form so both canonicalize to [0, 3, 7].
-        assert PitchClassSet([0, 4, 7]).prime_form() == [0, 3, 7]
-        assert PitchClassSet([0, 3, 7]).prime_form() == [0, 3, 7]
-        assert PitchClassSet([0, 2, 10]).prime_form() == [0, 2, 4]
+        assert PitchClassSet([0, 4, 7]).prime_form == [0, 3, 7]
+        assert PitchClassSet([0, 3, 7]).prime_form == [0, 3, 7]
+        assert PitchClassSet([0, 2, 10]).prime_form == [0, 2, 4]
 
     def test_prime_form_cluster_0_2_3(self):
-        assert PitchClassSet([0, 2, 3]).prime_form() == [0, 1, 3]
+        assert PitchClassSet([0, 2, 3]).prime_form == [0, 1, 3]
 
     def test_forte_num_matches_wikipedia_rahn_prime_column(self):
         # Major/minor triads share set class 3-11 (minor prime form [0,3,7] on Wikipedia).
-        assert PitchClassSet([0, 4, 7]).forte_num() == "3-11A"
-        assert PitchClassSet([0, 3, 7]).forte_num() == "3-11A"
-        assert PitchClassSet([0, 1, 2, 3, 4, 5]).forte_num() == "6-1"
+        assert PitchClassSet([0, 4, 7]).forte_num == "3-11A"
+        assert PitchClassSet([0, 3, 7]).forte_num == "3-11A"
+        assert PitchClassSet([0, 1, 2, 3, 4, 5]).forte_num == "6-1"
 
     def test_forte_num_edge_cardinalities(self):
-        assert PitchClassSet([]).forte_num() == "0-1"
-        assert PitchClassSet([9]).forte_num() == "1-1"
-        assert PitchClassSet(list(range(12))).forte_num() == "12-1"
+        assert PitchClassSet([]).forte_num == "0-1"
+        assert PitchClassSet([9]).forte_num == "1-1"
+        assert PitchClassSet(list(range(12))).forte_num == "12-1"
 
     def test_interval_class_vector_empty_and_singleton(self):
-        assert PitchClassSet([]).interval_vector() == [0, 0, 0, 0, 0, 0]
-        assert PitchClassSet([3]).interval_vector() == [0, 0, 0, 0, 0, 0]
+        assert PitchClassSet([]).interval_vector == [0, 0, 0, 0, 0, 0]
+        assert PitchClassSet([3]).interval_vector == [0, 0, 0, 0, 0, 0]
 
     def test_interval_class_vector_tetrachord_0123(self):
         # 4-1 chromatic: six pairs with ic1×3, ic2×2, ic3×1
-        assert PitchClassSet([0, 1, 2, 3]).interval_vector() == [3, 2, 1, 0, 0, 0]
+        assert PitchClassSet([0, 1, 2, 3]).interval_vector == [3, 2, 1, 0, 0, 0]
 
     def test_interval_class_vector_triad(self):
         # <001110> in order ic1..ic6
-        assert PitchClassSet([0, 4, 7]).interval_vector() == [0, 0, 1, 1, 1, 0]
+        assert PitchClassSet([0, 4, 7]).interval_vector == [0, 0, 1, 1, 1, 0]
 
     def test_interval_class_vector_includes_complement_intervals(self):
         # 0 and 11 -> directed 11 -> ic1
-        assert PitchClassSet([0, 11]).interval_vector() == [1, 0, 0, 0, 0, 0]
+        assert PitchClassSet([0, 11]).interval_vector == [1, 0, 0, 0, 0, 0]
+
+    def test_count_common_tones_under_tn_identity(self):
+        assert PitchClassSet([]).count_common_tones_under_tn(0) == 0
+        assert PitchClassSet([5]).count_common_tones_under_tn(0) == 1
+        assert PitchClassSet([0, 4, 7]).count_common_tones_under_tn(0) == 3
+        assert PitchClassSet([0, 4, 7]).count_common_tones_under_tn(12) == 3
+
+    def test_count_common_tones_under_tn_set_class_027(self):
+        # (027): one ic2 pair, two ic5 pairs — Open Music Theory common-tones examples
+        s = PitchClassSet([0, 2, 7])
+        assert s.interval_vector == [0, 1, 0, 0, 2, 0]
+        assert s.count_common_tones_under_tn(2) == 1
+        assert s.count_common_tones_under_tn(10) == 1
+        assert s.count_common_tones_under_tn(5) == 2
+        assert s.count_common_tones_under_tn(7) == 2
+        assert s.count_common_tones_under_tn(1) == 0
+
+    def test_count_common_tones_under_tn_tritone_doubling(self):
+        # ic6 count 1 → T6 retains twice that many common tones (cf. (016) in Open Music Theory)
+        s = PitchClassSet([0, 1, 6])
+        iv = s.interval_vector
+        assert iv == [1, 0, 0, 0, 1, 1]
+        assert s.count_common_tones_under_tn(6) == 2 * iv[5]
+        assert s.count_common_tones_under_tn(6) == 2
+        assert s.count_common_tones_under_tn(1) == iv[0]
 
     def test_duplicate_raises(self):
         with pytest.raises(ValueError, match="unique"):
@@ -296,7 +321,7 @@ class TestPitchClassSetIntervalVectorConsistencyWithMusic21:
     @given(pitch_class_set_strategy())
     def test_matches_music21(self, pitch_class_set: list[int]):
         m21_chord = chord.Chord(pitch_class_set)
-        assert PitchClassSet(pitch_class_set).interval_vector() == list(m21_chord.intervalVector)
+        assert PitchClassSet(pitch_class_set).interval_vector == list(m21_chord.intervalVector)
 
 
 class TestPitchClassSetNormalFormConsistencyWithMusic21:
@@ -305,10 +330,10 @@ class TestPitchClassSetNormalFormConsistencyWithMusic21:
 
         m21_chord = chord.Chord(pitch_class_set)
 
-        if pitch_class_set and m21_chord.forteClass in FORT_RAHN_DISAGREEMENTS:
+        if pitch_class_set and m21_chord.forteClass in FORTE_RAHN_DISAGREEMENTS:
             print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
         else:
-            assert PitchClassSet(pitch_class_set).normal_form() == m21_chord.normalOrder 
+            assert PitchClassSet(pitch_class_set).normal_form == m21_chord.normalOrder 
 
 
 class TestPitchClassSetPrimeFormConsistencyWithMusic21:
@@ -317,10 +342,10 @@ class TestPitchClassSetPrimeFormConsistencyWithMusic21:
 
         m21_chord = chord.Chord(pitch_class_set)
 
-        if pitch_class_set and m21_chord.forteClass in FORT_RAHN_DISAGREEMENTS:
+        if pitch_class_set and m21_chord.forteClass in FORTE_RAHN_DISAGREEMENTS:
             print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
         else:
-            assert PitchClassSet(pitch_class_set).prime_form() == m21_chord.primeForm 
+            assert PitchClassSet(pitch_class_set).prime_form == m21_chord.primeForm 
 
 
 class TestPitchClassSetNormalFormBenchmark:
@@ -332,9 +357,10 @@ class TestPitchClassSetNormalFormBenchmark:
         pcs = pitch_class_set_strategy().example()
 
 
+        s = PitchClassSet(pcs)
         # warm up
-        PitchClassSet(pcs).normal_form()
-        benchmark(PitchClassSet(pcs).normal_form)
+        _ = s.normal_form
+        benchmark(lambda: s.normal_form)
 
     def test_benchmark_normal_order_music21(self, benchmark):
         pcs = pitch_class_set_strategy().example()

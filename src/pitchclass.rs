@@ -45,7 +45,6 @@ impl PitchClassSet {
     ///     ValueError: If any pitch class is duplicated.
     ///     ValueError: If any pitch class is outside the range 0–11.
     #[new]
-    #[pyo3(signature = (pitch_classes))]
     fn new(pitch_classes: Vec<i8>) -> PyResult<Self> {
         if !has_unique_elements(&pitch_classes) {
             return Err(pyo3::exceptions::PyValueError::new_err(
@@ -91,6 +90,7 @@ impl PitchClassSet {
     ///     This implementation follows the standard post-tonal theory definition
     ///     (Rahn/Straus style) and corresponds to the algorithm described in
     ///     `src/specs/pitchclass.md`.
+    #[getter]
     fn normal_form(&self) -> Vec<i8> {
         get_normal_form(&sorted_pitch_classes(&self.pcs))
     }
@@ -103,6 +103,7 @@ impl PitchClassSet {
     ///
     /// Returns:
     ///     list[int]: The prime form of the set as pitch classes in the range 0–11.
+    #[getter]
     fn prime_form(&self) -> Vec<i8> {
         let sorted = sorted_pitch_classes(&self.pcs);
         let nf = get_normal_form(&sorted);
@@ -124,6 +125,7 @@ impl PitchClassSet {
     ///
     /// Raises:
     ///     ValueError: If the prime form is not found in the Forte catalog.
+    #[getter]
     fn forte_num(&self) -> PyResult<String> {
         let prime = self.prime_form();
         forte_for_prime_form(&prime)
@@ -135,13 +137,75 @@ impl PitchClassSet {
             })
     }
 
-    /// Return the **interval-class vector** (six counts, Forte style).
+    /// Compute the Forte interval-class vector for this pitch-class set.
     ///
-    /// For every unordered pair of distinct pitch classes, form the smaller
-    /// pitch interval in semitones (1..=11), map it to an interval class
-    /// 1..=6, and increment the count at index ``ic - 1``.
-    fn interval_vector(&self) -> Vec<i8> {
-        interval_class_vector(&self.pcs)
+    /// The interval-class vector is a six-element count of the unordered pitch-class
+    /// intervals present in the set. For each unordered pair of distinct pitch
+    /// classes, the smaller directed interval is computed modulo 12, mapped to an
+    /// interval class from 1 through 6, and counted at index `ic - 1`.
+    ///
+    /// Returns:
+    ///     list[int]: The interval vector of a pitch-class set, where each position
+    ///     corresponds to interval classes 1 through 6.
+    ///
+    /// Example:
+    ///     >>> pcs.interval_vector
+    ///     [0, 0, 1, 1, 1, 0]
+    #[getter]
+    fn interval_vector(&self) -> PyResult<Vec<i8>> {
+        Ok(interval_class_vector(&self.pcs))
+    }
+
+    /// Count how many pitch classes are shared between this set and its transposition by ``tn``
+    /// semitones (``Tn``, mod 12).
+    ///
+    /// For ``tn ≡ 0 (mod 12)``, no pitches change, so the count is the cardinality
+    /// of the set.
+    ///
+    /// Otherwise the we use the values in the set's interval-class vector and look up the value
+    /// according to the interval class of tn.
+    ///
+    /// For example, if tn is 10, then the interval class is 2, so we look up the
+    /// value at index ``1`` in the interval-class vector (i.e. ``iv[1]``).
+    /// (It's at index 1, because we don't store interval class 0 in the interval-class vector.)
+    ///
+    /// Under **tritone** transposition, i.e. ``Tn6``, common tones are **twice** the entry in
+    /// the interval-class vector.
+    /// See Open Music Theory, “Common Tones under Transposition”
+    /// (<https://openmusictheory.github.io/commonTonesUnderTransposition.html>).
+    ///
+    /// Args:
+    ///     tn (int): Transposition level in semitones (any integer -128..=127; reduced mod 12).
+    ///
+    /// Returns:
+    ///     int: Number of common pitch classes between pitch-class set and its transposition by ``tn``.
+    fn count_common_tones_under_tn(&self, tn: i8) -> PyResult<i8> {
+        let n = tn.rem_euclid(12);
+        if n == 0 {
+            return Ok(self.pcs.len() as i8);
+        }
+        let iv = interval_class_vector(&self.pcs);
+        let ic = semitones_to_interval_class(n);
+        let mut count = iv[(ic - 1) as usize];
+        if n == 6 {
+            count *= 2;
+        }
+        Ok(count)
+    }
+
+    /// Transpose the pitch-class set by a given number of semitones.
+    ///
+    /// The pitch-class set is transposed by the given number of semitones and the
+    /// result is wrapped modulo 12.
+    ///
+    /// Args:
+    ///     tn (int): The number of semitones to transpose by.
+    ///         Must be in the range -11 to 11.
+    fn transpose_by(&self, tn: i8) -> PyResult<Self> {
+        semitone_guard(tn)?;
+        Ok(Self {
+            pcs: self.pcs.iter().map(|&pc| wrap_pc_0_11(pc + tn)).collect(),
+        })
     }
 }
 
