@@ -1,0 +1,18 @@
+{
+    // CodeLLDB (LLDB: Attach) needs Apple's debugserver on macOS. If you develop on Linux, remove this block or set LLDB_DEBUGSERVER_PATH to your lldb-server binary.
+    "lldb.adapterEnv": {
+        "LLDB_DEBUGSERVER_PATH": "/Library/Developer/CommandLineTools/Library/PrivateFrameworks/LLDB.framework/Versions/A/Resources/debugserver"
+    },
+    "flake8.enabled": false,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+        "ruff.lint.enabled": true,
+        "ruff.format.enabled": true,
+        "ruff.organizeImports": true,
+        "testing.pytestEnabled": true
+    }
+}

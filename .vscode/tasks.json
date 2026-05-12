@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Build the Rust extension in debug mode and install it into .venv.
+      // Invoke maturin via the venv's python so we don't depend on PATH /
+      // shell-activation state when called from launch.json preLaunchTask.
+      "label": "Build Rust Extension",
+      "type": "shell",
+      "command": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "maturin", "develop"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$rustc"],
+      "group": "build"
+    }
+  ]
+}

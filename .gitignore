@@ -67,8 +67,6 @@ docs/_build/
 # PyCharm
 .idea/
 
-# VSCode
-.vscode/
 
 # Direnv
 .direnv/

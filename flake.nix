@@ -76,7 +76,13 @@
                   trivy
                 ])
                 # Add libiconv if on macOS
-                ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (with pkgs; [ libiconv ]);
+                ++ pkgs.lib.optionals pkgs.stdenv.isDarwin (
+                  with pkgs;
+                  [
+                    libiconv
+                    llvmPackages.lldb
+                  ]
+                );
             };
         }
       );

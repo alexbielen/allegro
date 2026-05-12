@@ -1,0 +1,70 @@
+{
+  // Two flavors of debugging:
+  //   * "Debug Script"  / "Debug Test"   -> LLDB launches python directly.
+  //                                          Hits breakpoints in Rust (PyO3) code.
+  //                                          Pure-Python breakpoints will NOT fire here.
+  //   * "Python: Debug Script" / "Python: Debug Test" -> debugpy launches python.
+  //                                          Hits Python breakpoints. Rust breakpoints will NOT fire.
+  //
+  // Mixing both at once via a compound (debugpy + LLDB attach) is unreliable on macOS because
+  // `.venv/bin/python` is a symlink and LLDB's `waitFor` matches on process name. If you need
+  // simultaneous Python + Rust debugging, use the "Attach LLDB to running Python" config and
+  // launch with `Python: Debug Script` first with stopOnEntry, then pick the python PID.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Script",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/.venv/bin/python",
+      "args": ["${file}"],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"],
+      "preLaunchTask": "Build Rust Extension"
+    },
+    {
+      "name": "Debug Test",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/.venv/bin/python",
+      "args": ["-m", "pytest", "-v", "${file}"],
+      "cwd": "${workspaceFolder}",
+      "sourceLanguages": ["rust"],
+      "preLaunchTask": "Build Rust Extension"
+    },
+    {
+      "name": "Python: Debug Script",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "preLaunchTask": "Build Rust Extension"
+    },
+    {
+      "name": "Python: Debug Test",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["-v", "${file}"],
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "preLaunchTask": "Build Rust Extension"
+    },
+    {
+      // Use this if you want simultaneous Python + Rust debugging.
+      // 1) Start "Python: Debug Script" (it has stopOnEntry-friendly settings or set a breakpoint
+      //    on line 1 of your script).
+      // 2) While Python is paused, start this config and pick the python process from the picker.
+      // 3) Resume Python; Rust breakpoints will fire when the .so is called.
+      "name": "Attach LLDB to running Python",
+      "type": "lldb",
+      "request": "attach",
+      "program": "${workspaceFolder}/.venv/bin/python",
+      "pid": "${command:pickMyProcess}",
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}
