@@ -3,20 +3,10 @@ use pyo3::prelude::*;
 use crate::forte_lookup::forte_for_prime_form;
 use crate::utils::has_unique_elements;
 
-/// Unordered set of distinct pitch classes.
+/// A collection of distinct pitch classes.
 ///
-/// `PitchClassSet` represents a set-class-style collection of pitch classes,
+/// `PitchClassSet` represents a collection of distinct pitch classes,
 /// where each pitch class must be unique and in the range 0–11.
-///
-/// Args:
-///     pitch_classes (list[int]): The pitch classes in the set.
-///         Each value must be unique and in the range 0–11.
-///         At most 12 pitch classes are allowed.
-///
-/// Raises:
-///     ValueError: If more than 12 pitch classes are provided.
-///     ValueError: If any pitch class is duplicated.
-///     ValueError: If any pitch class is outside the range 0–11.
 ///
 /// Notes:
 ///     Although this type represents an unordered set, the current input order
