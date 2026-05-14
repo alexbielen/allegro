@@ -163,6 +163,38 @@ impl PitchClassSet {
         Ok(interval_class_vector(&self.pcs))
     }
 
+    /// Generate all subsets of the pitch-class set.
+    ///
+    /// Args:
+    ///     min_size (int, optional): Only include subsets with at least this many pitch classes.
+    ///         Defaults to ``0`` (full powerset). Any value greater than the number of pitch classes
+    ///         in the set will return an empty list.
+    ///
+    /// Throws:
+    ///     OverflowError: If ``min_size`` is negative.
+    ///
+    /// Returns:
+    ///     list[PitchClassSet]: Subsets of the pitch-class set whose length is at least ``min_size``.
+    #[pyo3(signature = (min_size = 0))]
+    fn subsets(&self, min_size: usize) -> PyResult<Vec<Self>> {
+        let mut subsets = Vec::new();
+        let n = self.pcs.len();
+        for i in 0..(1usize << n) {
+            if (i.count_ones() as usize) < min_size {
+                continue;
+            }
+            let subset = self
+                .pcs
+                .iter()
+                .enumerate()
+                .filter(|(j, _)| i & (1usize << j) != 0)
+                .map(|(_, &pc)| pc)
+                .collect();
+            subsets.push(Self { pcs: subset });
+        }
+        Ok(subsets)
+    }
+
     /// Count how many pitch classes are shared between this set and its transposition by ``tn``
     /// semitones (``Tn``, mod 12).
     ///

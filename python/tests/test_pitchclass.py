@@ -1,4 +1,5 @@
 import random
+from math import comb
 from typing import ClassVar
 
 import pytest
@@ -342,6 +343,118 @@ class TestPitchClassSet:
         with pytest.raises(ValueError, match="0"):
             PitchClassSet([12])
 
+
+class TestPitchClassSetSubsets:
+    """Tests for `PitchClassSet.subsets()` (powerset of the pitch-class set)."""
+
+    def test_empty_set_has_one_subset(self):
+        result = PitchClassSet([]).subsets()
+        assert len(result) == 1
+        assert result[0].pitch_classes == []
+
+    def test_empty_set_min_size_positive_returns_empty(self):
+        assert PitchClassSet([]).subsets(1) == []
+        assert PitchClassSet([]).subsets(3) == []
+
+    def test_singleton_has_empty_and_self(self):
+        result = PitchClassSet([5]).subsets()
+        as_tuples = {tuple(s.pitch_classes) for s in result}
+        assert as_tuples == {(), (5,)}
+
+    def test_pair_has_four_subsets(self):
+        result = PitchClassSet([0, 7]).subsets()
+        as_tuples = {tuple(s.pitch_classes) for s in result}
+        assert as_tuples == {(), (0,), (7,), (0, 7)}
+
+    def test_triad_returns_all_eight_subsets(self):
+        # Powerset of [0, 4, 7]. Order within each subset matches input order
+        # (the implementation iterates indices 0..n with a bitmask).
+        result = PitchClassSet([0, 4, 7]).subsets()
+        as_tuples = {tuple(s.pitch_classes) for s in result}
+        assert as_tuples == {
+            (),
+            (0,),
+            (4,),
+            (7,),
+            (0, 4),
+            (0, 7),
+            (4, 7),
+            (0, 4, 7),
+        }
+
+    def test_min_size_three_triad_only_full_set(self):
+        subs = PitchClassSet([0, 4, 7]).subsets(min_size=3)
+        assert len(subs) == 1
+        assert subs[0].pitch_classes == [0, 4, 7]
+
+    def test_min_size_two_on_triad(self):
+        as_tuples = {tuple(s.pitch_classes) for s in PitchClassSet([0, 4, 7]).subsets(2)}
+        assert as_tuples == {(0, 4), (0, 7), (4, 7), (0, 4, 7)}
+
+    def test_min_size_one_on_triad_excludes_empty(self):
+        as_tuples = {tuple(s.pitch_classes) for s in PitchClassSet([0, 4, 7]).subsets(1)}
+        assert () not in as_tuples
+        assert len(as_tuples) == 7
+
+    def test_min_size_exceeds_len_returns_empty(self):
+        assert PitchClassSet([0, 1]).subsets(3) == []
+
+    def test_min_size_zero_same_as_omitted(self):
+        s = PitchClassSet([0, 7])
+        assert {tuple(x.pitch_classes) for x in s.subsets()} == {
+            tuple(x.pitch_classes) for x in s.subsets(0)
+        }
+
+    def test_negative_min_size_raises_overflow_error(self):
+        # PyO3 maps min_size to Rust usize; negative Python ints fail at conversion.
+        s = PitchClassSet([0, 7])
+        with pytest.raises(OverflowError, match="negative int"):
+            s.subsets(-1)
+
+    def test_returns_pitch_class_set_instances(self):
+        result = PitchClassSet([0, 1, 2]).subsets()
+        assert all(isinstance(s, PitchClassSet) for s in result)
+
+    def test_full_chromatic_returns_4096_subsets(self):
+        # 2**12 = 4096; checks the largest valid input doesn't overflow or trim.
+        result = PitchClassSet(list(range(12))).subsets()
+        assert len(result) == 4096
+
+    @given(pitch_class_set_strategy())
+    def test_subset_count_is_power_of_two(self, pcs_list: list[int]):
+        s = PitchClassSet(pcs_list)
+        assert len(s.subsets()) == 2 ** len(pcs_list)
+
+    @given(pitch_class_set_strategy())
+    def test_each_subset_is_contained_in_original(self, pcs_list: list[int]):
+        s = PitchClassSet(pcs_list)
+        original = set(pcs_list)
+        for sub in s.subsets():
+            assert set(sub.pitch_classes).issubset(original)
+
+    @given(pitch_class_set_strategy())
+    def test_all_subsets_are_unique(self, pcs_list: list[int]):
+        s = PitchClassSet(pcs_list)
+        as_tuples = [tuple(sub.pitch_classes) for sub in s.subsets()]
+        assert len(set(as_tuples)) == len(as_tuples)
+
+    @given(pitch_class_set_strategy())
+    def test_empty_and_full_subsets_are_always_present(self, pcs_list: list[int]):
+        s = PitchClassSet(pcs_list)
+        as_tuples = {tuple(sub.pitch_classes) for sub in s.subsets()}
+        assert () in as_tuples
+        assert tuple(pcs_list) in as_tuples
+
+    @given(pitch_class_set_strategy(), st.integers(min_value=0, max_value=12))
+    def test_min_size_each_result_has_at_least_k_members(self, pcs_list: list[int], min_size: int):
+        for sub in PitchClassSet(pcs_list).subsets(min_size):
+            assert len(sub.pitch_classes) >= min_size
+
+    @given(pitch_class_set_strategy(), st.integers(min_value=0, max_value=12))
+    def test_min_size_count_matches_binomial_tail(self, pcs_list: list[int], min_size: int):
+        n = len(pcs_list)
+        expected = sum(comb(n, k) for k in range(min_size, n + 1))
+        assert len(PitchClassSet(pcs_list).subsets(min_size)) == expected
 
 
 class TestIntervalClass:
