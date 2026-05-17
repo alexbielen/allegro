@@ -155,6 +155,85 @@ impl VoiceLeading {
     }
 }
 
+fn validate_non_empty_pcs(pcs: &PitchClassSet) -> PyResult<()> {
+    if pcs.pcs.is_empty() {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "pitch-class set must not be empty",
+        ));
+    }
+    Ok(())
+}
+
+fn voicing_span(notes: &[i32]) -> i32 {
+    let min = notes.iter().copied().min().unwrap_or(0);
+    let max = notes.iter().copied().max().unwrap_or(0);
+    max - min
+}
+
+/// Smallest MIDI key in ``[min_keynum, max_keynum]`` with pitch class ``pc``.
+fn first_midi_for_pc(pc: i8, min_keynum: i32, max_keynum: i32) -> Option<i32> {
+    let pc_i = i32::from(pc);
+    let delta = (pc_i - min_keynum.rem_euclid(12)).rem_euclid(12);
+    let first = min_keynum + delta;
+    if first <= max_keynum {
+        Some(first)
+    } else {
+        None
+    }
+}
+
+/// Enumerate all voicings for one permutation with notes in range.
+///
+/// Each voice moves upward by the ascending pitch-class interval from the previous
+/// voice, optionally plus any number of octaves (+12 semitones).
+fn enumerate_permutation_in_range(
+    permutation: &[i8],
+    min_keynum: i32,
+    max_keynum: i32,
+    notes: &mut Vec<i32>,
+    out: &mut Vec<Vec<i32>>,
+) {
+    let idx = notes.len();
+    if idx == permutation.len() {
+        out.push(notes.clone());
+        return;
+    }
+    if idx == 0 {
+        let Some(mut next) = first_midi_for_pc(permutation[0], min_keynum, max_keynum) else {
+            return;
+        };
+        while next <= max_keynum {
+            notes.push(next);
+            enumerate_permutation_in_range(permutation, min_keynum, max_keynum, notes, out);
+            notes.pop();
+            next += 12;
+        }
+    } else {
+        let step = ascending_pc_interval(permutation[idx - 1], permutation[idx]);
+        let mut next = notes[idx - 1] + step;
+        while next <= max_keynum {
+            if next >= min_keynum {
+                notes.push(next);
+                enumerate_permutation_in_range(permutation, min_keynum, max_keynum, notes, out);
+                notes.pop();
+            }
+            next += 12;
+        }
+    }
+}
+
+fn voicings_in_keynum_range(pcs: &PitchClassSet, min_keynum: i32, max_keynum: i32) -> Vec<Voicing> {
+    let mut out = Vec::new();
+    let mut notes = Vec::new();
+    let mut raw = Vec::new();
+    for perm in permutations(&pcs.pcs) {
+        raw.clear();
+        enumerate_permutation_in_range(&perm, min_keynum, max_keynum, &mut notes, &mut raw);
+        out.extend(raw.drain(..).map(|notes| Voicing { notes }));
+    }
+    out
+}
+
 /// Enumerate all voicings of a pitch-class set at a given register.
 ///
 /// The first pitch class in ``pcs`` (input order) is placed at ``octave``
@@ -163,11 +242,7 @@ impl VoiceLeading {
 #[pyfunction]
 #[pyo3(signature = (pcs, octave = 4))]
 pub fn voicings_from_pc_set(pcs: &PitchClassSet, octave: i32) -> PyResult<Vec<Voicing>> {
-    if pcs.pcs.is_empty() {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "pitch-class set must not be empty",
-        ));
-    }
+    validate_non_empty_pcs(pcs)?;
     let anchor_pc = pcs.pcs[0];
     let anchor_midi = midi_at_octave(anchor_pc, octave);
     let perms = permutations(&pcs.pcs);
@@ -176,5 +251,48 @@ pub fn voicings_from_pc_set(pcs: &PitchClassSet, octave: i32) -> PyResult<Vec<Vo
         .map(|perm| Voicing {
             notes: voicing_from_permutation(&perm, anchor_pc, anchor_midi),
         })
+        .collect())
+}
+
+/// Enumerate voicings whose notes all lie in ``[min_keynum, max_keynum]``.
+///
+/// For each permutation, voices ascend by pitch-class steps along the order, with
+/// optional octave displacements (+12) between adjacent voices. No anchor register
+/// is used.
+#[pyfunction]
+#[pyo3(signature = (pcs, min_keynum, max_keynum))]
+pub fn voicings_from_pc_set_in_keynum_range(
+    pcs: &PitchClassSet,
+    min_keynum: i32,
+    max_keynum: i32,
+) -> PyResult<Vec<Voicing>> {
+    if min_keynum > max_keynum {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "min_keynum must be <= max_keynum",
+        ));
+    }
+    validate_non_empty_pcs(pcs)?;
+    Ok(voicings_in_keynum_range(pcs, min_keynum, max_keynum))
+}
+
+/// Enumerate voicings with span (highest minus lowest note) at most ``max_span``.
+///
+/// Searches MIDI keynums 0–127. Uses the same voice-leading walk as
+/// ``voicings_from_pc_set_in_keynum_range``, without anchoring.
+#[pyfunction]
+#[pyo3(signature = (pcs, max_span))]
+pub fn voicings_from_pc_set_within_span(
+    pcs: &PitchClassSet,
+    max_span: i32,
+) -> PyResult<Vec<Voicing>> {
+    if max_span < 0 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "max_span must be >= 0",
+        ));
+    }
+    validate_non_empty_pcs(pcs)?;
+    Ok(voicings_in_keynum_range(pcs, 0, 127)
+        .into_iter()
+        .filter(|v| voicing_span(&v.notes) <= max_span)
         .collect())
 }

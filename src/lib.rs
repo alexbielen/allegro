@@ -39,6 +39,8 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<voicing::DistanceMode>()?;
     m.add_class::<voicing::VoiceLeading>()?;
     m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set, m)?)?;
+    m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set_in_keynum_range, m)?)?;
+    m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set_within_span, m)?)?;
 
     // time module (time.rs)
     m.add_function(wrap_pyfunction!(time::bpm_to_seconds, m)?)?;

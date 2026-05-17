@@ -3,7 +3,13 @@ from math import factorial
 import pytest
 
 from allegro.pitchclass import PitchClassSet
-from allegro.voicing import DistanceMode, Voicing, voicings_from_pc_set
+from allegro.voicing import (
+    DistanceMode,
+    Voicing,
+    voicings_from_pc_set,
+    voicings_from_pc_set_in_keynum_range,
+    voicings_from_pc_set_within_span,
+)
 
 
 def _voicing_map(pcs, octave=4):
@@ -81,6 +87,64 @@ class TestErrors:
         b = Voicing([60, 64])
         with pytest.raises(ValueError, match="same number of voices"):
             a.distance_to(b)
+
+
+class TestKeynumRange:
+    def test_all_notes_in_range(self):
+        pcs = PitchClassSet([0, 4, 7])
+        voicings = voicings_from_pc_set_in_keynum_range(pcs, 36, 69)
+        assert len(voicings) > 0
+        for v in voicings:
+            assert all(36 <= n <= 69 for n in v.notes)
+
+    def test_includes_example_voicings(self):
+        pcs = PitchClassSet([0, 4, 7])
+        got = {tuple(v.notes) for v in voicings_from_pc_set_in_keynum_range(pcs, 36, 69)}
+        assert (36, 52, 67) in got
+        assert (40, 55, 60) in got
+        assert (43, 48, 64) in got
+
+    def test_includes_close_position(self):
+        pcs = PitchClassSet([0, 4, 7])
+        voicings = voicings_from_pc_set_in_keynum_range(pcs, 60, 72)
+        assert [60, 64, 67] in [v.notes for v in voicings]
+
+    def test_tighter_range_fewer_voicings(self):
+        pcs = PitchClassSet([0, 4, 7])
+        wide = voicings_from_pc_set_in_keynum_range(pcs, 36, 69)
+        narrow = voicings_from_pc_set_in_keynum_range(pcs, 60, 67)
+        assert len(narrow) < len(wide)
+
+    def test_more_voicings_than_anchor_mode(self):
+        pcs = PitchClassSet([0, 4, 7])
+        anchored = voicings_from_pc_set(pcs)
+        in_range = voicings_from_pc_set_in_keynum_range(pcs, 36, 69)
+        assert len(in_range) > len(anchored)
+
+    def test_invalid_range(self):
+        pcs = PitchClassSet([0, 4, 7])
+        with pytest.raises(ValueError, match="min_keynum"):
+            voicings_from_pc_set_in_keynum_range(pcs, 72, 60)
+
+
+class TestWithinSpan:
+    def test_filters_by_span(self):
+        pcs = PitchClassSet([0, 4, 7])
+        voicings = voicings_from_pc_set_within_span(pcs, 7)
+        assert len(voicings) > 0
+        for v in voicings:
+            assert v.span <= 7
+        assert [60, 64, 67] in [v.notes for v in voicings]
+
+    def test_excludes_wide_voicing(self):
+        pcs = PitchClassSet([0, 4, 7])
+        voicings = voicings_from_pc_set_within_span(pcs, 7)
+        assert [36, 52, 67] not in [v.notes for v in voicings]
+
+    def test_invalid_max_span(self):
+        pcs = PitchClassSet([0, 4, 7])
+        with pytest.raises(ValueError, match="max_span"):
+            voicings_from_pc_set_within_span(pcs, -1)
 
 
 class TestFirstPcAnchor:
