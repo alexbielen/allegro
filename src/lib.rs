@@ -7,6 +7,7 @@ mod numbers;
 mod physical;
 mod pitchclass;
 mod quadratic;
+mod voicing;
 mod time;
 mod utils;
 
@@ -32,6 +33,12 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::interval_class, m)?)?;
     m.add_class::<pitchclass::PitchClassSet>()?;
+
+    // voicing module (voicing.rs)
+    m.add_class::<voicing::Voicing>()?;
+    m.add_class::<voicing::DistanceMode>()?;
+    m.add_class::<voicing::VoiceLeading>()?;
+    m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set, m)?)?;
 
     // time module (time.rs)
     m.add_function(wrap_pyfunction!(time::bpm_to_seconds, m)?)?;
