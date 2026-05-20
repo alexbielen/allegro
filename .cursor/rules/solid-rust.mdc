@@ -1,0 +1,30 @@
+---
+description: Outlines the SOLID principles to apply in the codebase, in rust fashion
+alwaysApply: true
+---
+
+## Rust SOLID Guidelines
+
+When changing this codebase, prefer small, explicit Rust abstractions over broad object-oriented patterns. Apply SOLID as practical design pressure, not ceremony.
+
+### Single Responsibility Principle
+
+Keep structs, modules, and functions focused on one reason to change. A data type should model data or behavior clearly; it should not also own unrelated concerns such as file I/O, network access, logging, or persistence. Split responsibilities into focused modules such as `Config`, `ConfigLoader`, and `ConfigWriter`.
+
+### Open/Closed Principle
+
+Prefer extension through traits, implementations, and composition rather than editing stable code paths. When adding a new variant of behavior, consider whether a trait plus a new implementation is cleaner than expanding a central `match`, enum, or conditional chain. Do not over-abstract prematurely; use traits where extension is expected.
+
+### Liskov Substitution Principle
+
+Every type implementing a trait must honor the trait’s contract. Do not implement methods with surprising panics, no-op behavior, or weakened guarantees. If only some types support behavior, split the behavior into a smaller trait instead of forcing all implementors to fake it.
+
+### Interface Segregation Principle
+
+Use small, focused traits. Prefer traits on the size of `Readable`, `Writable`, `Validates`, or `SendsMessage` over large “god traits.” A type should only implement capabilities it actually supports.
+
+### Dependency Inversion Principle
+
+High-level application logic should depend on traits, not concrete infrastructure. Inject dependencies through generics, trait bounds, or `dyn Trait` where appropriate. Keep concrete adapters for databases, filesystems, HTTP clients, queues, and email/SMS providers at the edges of the system.
+
+Favor clarity, ownership-safe APIs, and testable seams over unnecessary abstraction.
