@@ -1,5 +1,7 @@
 use pyo3::prelude::*;
 
+use crate::py_stub::gen_stub_pyfunction;
+
 use crate::error::require;
 
 /// Standard Earth surface gravity in m/s².
@@ -67,6 +69,7 @@ const DEFAULT_MAX_TIME: f64 = 10.0;
 ///     Slower motion under reduced gravity:
 ///
 ///     >>> samples = bouncing_ball(height=1.0, velocity=0.0, gravity=1.62, max_time=5.0)
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (height, velocity, gravity=None, elasticity=1.0, samples_per_second=100.0, max_time=None))]
 pub fn bouncing_ball(

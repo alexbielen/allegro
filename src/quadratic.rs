@@ -1,5 +1,7 @@
 use pyo3::prelude::*;
 
+use crate::py_stub::gen_stub_pyfunction;
+
 use crate::error::require;
 
 /// Standard Earth surface gravity in m/s².
@@ -28,6 +30,7 @@ fn height_at(h0: f64, v0: f64, g: f64, dt: f64) -> f64 {
     (h0 + v0 * dt - 0.5 * g * dt * dt).max(0.0)
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (height, velocity, gravity=None, elasticity=1.0, samples_per_second=100.0, max_time=None))]
 /// Simulate a bouncing ball and return sampled (height, time) points.

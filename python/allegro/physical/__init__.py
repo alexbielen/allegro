@@ -1,6 +1,6 @@
 """Physical namespace: bouncing ball and related utilities."""
 
-from .allegro import bouncing_ball
+from ..allegro import bouncing_ball
 
 
 class CommonBallElasticity:

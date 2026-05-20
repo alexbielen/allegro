@@ -1,5 +1,8 @@
 use pyo3::prelude::*;
 
+use crate::py_stub::{gen_stub_pyclass_enum, gen_stub_pyfunction};
+
+#[gen_stub_pyclass_enum]
 #[pyclass]
 #[derive(Clone, Copy, PartialEq)]
 /// Strategy for fitting a number into a closed interval ``[min, max]``.
@@ -80,6 +83,7 @@ fn triangle_fold(distance_past_bound: f64, span: f64) -> f64 {
     }
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (mode, min, max, num))]
 /// Fit a number into the closed interval ``[min, max]`` using the given mode.
@@ -170,6 +174,7 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
     Ok(result.clamp(min, max))
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (mode, min, max, nums))]
 /// Fit a list of numbers into the closed interval ``[min, max]`` using the given mode.
@@ -191,6 +196,7 @@ pub fn fit_list(mode: FitMode, min: f64, max: f64, nums: Vec<f64>) -> PyResult<V
     nums.iter().map(|num| fit(mode, min, max, *num)).collect()
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (step, value))]
 /// Quantize a value to the nearest multiple of ``step``.

@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 use crate::forte_lookup::forte_for_prime_form;
+use crate::py_stub::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
 use crate::utils::has_unique_elements;
 
 // ============ PitchClass primitive ============
@@ -45,6 +46,7 @@ fn validate_semitones(s: i8) -> PyResult<()> {
 ///     Although this type represents an unordered set, the current input order
 ///     is preserved internally. Methods that require sorted pitch classes sort
 ///     internally before computing their results.
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct PitchClassSet {
@@ -65,6 +67,7 @@ impl PitchClassSet {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PitchClassSet {
     /// Create a new pitch-class set.
@@ -435,6 +438,7 @@ fn map_ordered_set<F: Fn(PitchClass) -> PitchClass>(set: &[i8], f: F) -> PyResul
 ///     if the input is outside the range 0–11, you will get an OverflowError results if
 ///     the input is outside the range of an i8 (i.e. -128 to 127).
 ///
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (pc))]
 pub fn invert(pc: i8) -> PyResult<i8> {
@@ -459,6 +463,7 @@ pub fn invert(pc: i8) -> PyResult<i8> {
 ///     ValueError: If ``by_semitones`` is outside the range -11 to 11.
 ///     ValueError: If ``pc`` is not in the range 0–11.
 ///
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (by_semitones, pc))]
 pub fn transpose(by_semitones: i8, pc: i8) -> PyResult<i8> {
@@ -485,6 +490,7 @@ pub fn transpose(by_semitones: i8, pc: i8) -> PyResult<i8> {
 /// Raises:
 ///     ValueError: If ``by_semitones`` is outside the range -11 to 11.
 ///     ValueError: If any pitch class is outside the range 0–11.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (by_semitones, ordered_set))]
 pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
@@ -507,6 +513,7 @@ pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult
 ///
 /// Raises:
 ///     ValueError: If any pitch class is outside the range 0–11.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (ordered_set))]
 pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
@@ -517,6 +524,7 @@ pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
 ///
 /// ``0`` means unison/octave (interval ≡ 0 mod 12); classes ``1``–``6`` are the usual
 /// interval classes for distinct pitch classes.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (interval))]
 pub fn interval_class(interval: i8) -> i8 {

@@ -31,9 +31,20 @@ build-backend = "maturin"
 
 [tool.maturin]
 python-source = "python"
+module-name = "allegro.allegro"
 # auto-initialize caches the Python interpreter so each pyfunction call doesn't pay
 # ~hundreds of µs of init overhead (see pyo3.rs "Features for embedding" / auto-initialize).
 features = ["pyo3/extension-module"]
+
+[tool.pyo3-stub-gen]
+generate-init-py = [
+    "allegro.pitchclass",
+    "allegro.voicing",
+    "allegro.numbers",
+    "allegro.midi",
+    "allegro.boids",
+    "allegro.quadratic",
+]
 
 [tool.bandit]
 exclude_dirs = ["python/tests", "python/allegro_dev"]

@@ -1,8 +1,11 @@
 use fraction::{GenericFraction, ToPrimitive};
 use pyo3::prelude::*;
 
+use crate::py_stub::gen_stub_pyfunction;
+
 type Rhythm = GenericFraction<i16>;
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (bpm))]
 pub fn bpm_to_seconds(bpm: f64) -> f64 {
@@ -20,6 +23,7 @@ fn rhythm_to_seconds_impl(rhy: Rhythm, bpm: f64) -> f64 {
     rhy_f64 * 4.0 * bpm_to_seconds_impl(bpm)
 }
 
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (num, den, bpm))]
 pub fn rhythm_to_seconds(num: i16, den: i16, bpm: f64) -> f64 {

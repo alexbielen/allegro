@@ -1,10 +1,13 @@
 use pyo3::prelude::*;
 
+use crate::py_stub::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
+
 const PITCH_CLASS_NAMES: [&str; 12] = [
     "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
 ];
 
 /// A concrete pitch identified by a MIDI key number.
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone, Copy)]
 pub struct Pitch {
@@ -19,6 +22,7 @@ impl Pitch {
     }
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Pitch {
     /// Scientific pitch notation (e.g. ``'C4'`` for MIDI key number 60).
@@ -35,6 +39,7 @@ impl Pitch {
 }
 
 /// Build a :class:`Pitch` from a MIDI key number.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (keynum))]
 pub fn keynum_to_pitch(keynum: i32) -> Pitch {

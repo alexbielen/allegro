@@ -15,6 +15,28 @@ def run_clippy(root: Path) -> None:
     )
 
 
+def run_stub_gen(root: Path) -> None:
+    subprocess.run(
+        ["cargo", "run", "--bin", "stub_gen"],
+        cwd=root,
+        check=True,
+    )
+
+
+def check_stubs_up_to_date(root: Path) -> None:
+    """Regenerate stubs / namespace __init__ files and fail if committed files drift."""
+    run_stub_gen(root)
+    result = subprocess.run(
+        ["git", "diff", "--exit-code", "--", "python/allegro"],
+        cwd=root,
+    )
+    if result.returncode != 0:
+        raise SystemExit(
+            "Generated Python API files under python/allegro are out of date; run "
+            "`cargo run --bin stub_gen` and commit the result"
+        )
+
+
 def run_pytest(
     root: Path,
     verbose: bool = False,
@@ -65,6 +87,7 @@ def build_and_test() -> None:
     print("[bold green]Building Allegro[/bold green] [music]🎵[/music]")
     root = Path.cwd()
     root = find_project_root(root)
+    run_stub_gen(root)
     run_clippy(root)
     run_maturin_develop(root, optimize=True)
     run_pytest(root, skip_benchmark=True, verbose=True)

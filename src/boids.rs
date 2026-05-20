@@ -4,6 +4,8 @@
 
 use glam::Vec3;
 use pyo3::prelude::*;
+
+use crate::py_stub::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
 use pyo3::pyfunction;
 use crate::error::require;
 
@@ -45,6 +47,7 @@ use crate::error::require;
 ///
 /// Examples:
 ///     >>> dims = Dimensions(-500.0, 500.0, -500.0, 500.0, -500.0, 500.0)
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Debug, Clone)]
 pub struct Dimensions {
@@ -62,6 +65,7 @@ pub struct Dimensions {
     pub z_max: f32,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Dimensions {
     #[new]
@@ -138,6 +142,7 @@ impl Dimensions {
 ///     ...     bound_steer=10.0,
 ///     ...     speed_limit=10.0,
 ///     ... )
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct Universe {
     flock: Vec<Boid>,
@@ -149,6 +154,7 @@ pub struct Universe {
     speed_limit: Option<f32>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Universe {
     #[new]
@@ -361,6 +367,7 @@ impl Universe {
 ///     (0.0, 0.0, 0.0)
 ///     >>> boid.velocity()
 ///     (1.0, 0.0, 0.0)
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 pub struct Boid {
@@ -368,6 +375,7 @@ pub struct Boid {
     pub velocity: Vec3,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Boid {
     #[new]
@@ -445,6 +453,7 @@ impl Boid {
 ///     >>> flock = create_boids_with_random_positions(10, dims)
 ///     >>> len(flock)
 ///     10
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (flock_size, dimensions))]
 pub fn create_boids_with_random_positions(

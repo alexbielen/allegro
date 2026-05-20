@@ -1,5 +1,9 @@
 use pyo3::prelude::*;
 
+use crate::py_stub::{
+    gen_stub_pyclass, gen_stub_pyclass_enum, gen_stub_pyfunction, gen_stub_pymethods,
+};
+
 use crate::pitchclass::PitchClassSet;
 
 /// MIDI key number for a pitch class at scientific octave (C4 = octave 4 → 60).
@@ -62,6 +66,7 @@ fn permutations(items: &[i8]) -> Vec<Vec<i8>> {
     out
 }
 
+#[gen_stub_pyclass]
 #[pyclass]
 #[derive(Clone)]
 /// A specific arrangement of pitches as MIDI key numbers.
@@ -69,6 +74,7 @@ pub struct Voicing {
     notes: Vec<i32>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl Voicing {
     /// Create a voicing from an explicit list of MIDI key numbers.
@@ -133,6 +139,7 @@ impl Voicing {
     }
 }
 
+#[gen_stub_pyclass_enum]
 #[pyclass]
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 /// Strategy for measuring distance between two voicings.
@@ -144,9 +151,11 @@ pub enum DistanceMode {
 }
 
 /// Reserved for future voice-leading path search between chords.
+#[gen_stub_pyclass]
 #[pyclass]
 pub struct VoiceLeading {}
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl VoiceLeading {
     #[new]
@@ -235,6 +244,7 @@ fn voicings_in_keynum_range(pcs: &PitchClassSet, min_keynum: i32, max_keynum: i3
 /// The first pitch class in ``pcs`` (input order) is placed at ``octave``
 /// (default 4, e.g. C4 = MIDI 60 when that pitch class is 0). Each permutation
 /// of the set is realized by walking ascending pitch-class steps along the order.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (pcs, octave = 4))]
 pub fn voicings_from_pc_set(pcs: &PitchClassSet, octave: i32) -> PyResult<Vec<Voicing>> {
@@ -256,6 +266,7 @@ pub fn voicings_from_pc_set(pcs: &PitchClassSet, octave: i32) -> PyResult<Vec<Vo
 /// For each permutation, voices ascend by pitch-class steps along the order, with
 /// optional octave displacements (+12) between adjacent voices. No anchor register
 /// is used.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (pcs, min_keynum, max_keynum))]
 pub fn voicings_from_pc_set_in_keynum_range(
@@ -276,6 +287,7 @@ pub fn voicings_from_pc_set_in_keynum_range(
 ///
 /// Searches MIDI keynums 0–127. Uses the same voice-leading walk as
 /// ``voicings_from_pc_set_in_keynum_range``, without anchoring.
+#[gen_stub_pyfunction]
 #[pyfunction]
 #[pyo3(signature = (pcs, max_span))]
 pub fn voicings_from_pc_set_within_span(

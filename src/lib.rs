@@ -1,6 +1,9 @@
 use pyo3::prelude::*;
 
+use pyo3_stub_gen::{define_stub_info_gatherer, reexport_module_members};
+
 mod boids;
+mod py_stub;
 mod error;
 mod forte_lookup;
 mod midi;
@@ -62,3 +65,47 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     Ok(())
 }
+
+// Namespace re-exports (generates `python/allegro/<name>/__init__.py` via `generate-init-py`).
+reexport_module_members!(
+    "allegro.pitchclass" from "allegro.allegro";
+    "PitchClassSet",
+    "interval_class",
+    "invert",
+    "invert_ordered_set",
+    "transpose",
+    "transpose_ordered_set"
+);
+reexport_module_members!(
+    "allegro.voicing" from "allegro.allegro";
+    "DistanceMode",
+    "VoiceLeading",
+    "Voicing",
+    "voicings_from_pc_set",
+    "voicings_from_pc_set_in_keynum_range",
+    "voicings_from_pc_set_within_span"
+);
+reexport_module_members!(
+    "allegro.numbers" from "allegro.allegro";
+    "FitMode",
+    "fit",
+    "fit_list",
+    "quantize"
+);
+reexport_module_members!(
+    "allegro.midi" from "allegro.allegro";
+    "Pitch",
+    "keynum_to_pitch"
+);
+reexport_module_members!(
+    "allegro.boids" from "allegro.allegro";
+    "Boid",
+    "Dimensions",
+    "Universe",
+    "create_boids_with_random_positions"
+);
+reexport_module_members!(
+    "allegro.quadratic" from "allegro.allegro";
+    "quadratic_bouncing_ball"
+);
+define_stub_info_gatherer!(stub_info);
