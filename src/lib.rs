@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 mod boids;
 mod error;
 mod forte_lookup;
+mod midi;
 mod numbers;
 mod physical;
 mod pitchclass;
@@ -41,6 +42,10 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set, m)?)?;
     m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set_in_keynum_range, m)?)?;
     m.add_function(wrap_pyfunction!(voicing::voicings_from_pc_set_within_span, m)?)?;
+
+    // midi module (midi.rs)
+    m.add_class::<midi::Pitch>()?;
+    m.add_function(wrap_pyfunction!(midi::keynum_to_pitch, m)?)?;
 
     // time module (time.rs)
     m.add_function(wrap_pyfunction!(time::bpm_to_seconds, m)?)?;
