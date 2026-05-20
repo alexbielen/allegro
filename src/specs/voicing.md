@@ -66,3 +66,5 @@ for voicing in a_minor_voicings:
     print(voicing.distance_to(a_minor_voicing2, mode=SumAbs)) # 10
 
 ```
+
+Let's write this API in Rust using structs and impl blocks.

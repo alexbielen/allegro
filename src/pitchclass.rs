@@ -3,6 +3,39 @@ use pyo3::prelude::*;
 use crate::forte_lookup::forte_for_prime_form;
 use crate::utils::has_unique_elements;
 
+// ============ PitchClass primitive ============
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+struct PitchClass(i8);
+
+impl PitchClass {
+    fn try_new(pc: i8) -> PyResult<Self> {
+        crate::error::require((0..=11).contains(&pc), "pc must be within the range 0-11")?;
+        Ok(Self(pc))
+    }
+
+    fn raw(self) -> i8 {
+        self.0
+    }
+
+    fn invert(self) -> Self {
+        Self((-self.0).rem_euclid(12))
+    }
+
+    fn transpose(self, semitones: i8) -> Self {
+        Self((self.0 + semitones).rem_euclid(12))
+    }
+}
+
+fn validate_semitones(s: i8) -> PyResult<()> {
+    crate::error::require(
+        (-11..=11).contains(&s),
+        "by_semitones must be within the range (-11)-11",
+    )
+}
+
+// ============ PitchClassSet (PyO3 class) ============
+
 /// A collection of distinct pitch classes.
 ///
 /// `PitchClassSet` represents a collection of distinct pitch classes,
@@ -15,7 +48,21 @@ use crate::utils::has_unique_elements;
 #[pyclass]
 #[derive(Clone)]
 pub struct PitchClassSet {
-    pub pcs: Vec<i8>,
+    pcs: Vec<PitchClass>,
+}
+
+impl PitchClassSet {
+    pub(crate) fn is_empty(&self) -> bool {
+        self.pcs.is_empty()
+    }
+
+    pub(crate) fn pcs_i8(&self) -> Vec<i8> {
+        self.pcs.iter().copied().map(PitchClass::raw).collect()
+    }
+
+    pub(crate) fn first_pc_i8(&self) -> Option<i8> {
+        self.pcs.first().map(|pc| pc.raw())
+    }
 }
 
 #[pymethods]
@@ -36,17 +83,15 @@ impl PitchClassSet {
     ///     ValueError: If any pitch class is outside the range 0–11.
     #[new]
     fn new(pitch_classes: Vec<i8>) -> PyResult<Self> {
-        if !has_unique_elements(&pitch_classes) {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "pitch classes must be unique",
-            ));
-        }
-
-        for &pc in &pitch_classes {
-            pc_guard(pc)?;
-        }
-
-        Ok(Self { pcs: pitch_classes })
+        crate::error::require(
+            has_unique_elements(&pitch_classes),
+            "pitch classes must be unique",
+        )?;
+        let pcs = pitch_classes
+            .into_iter()
+            .map(PitchClass::try_new)
+            .collect::<PyResult<Vec<_>>>()?;
+        Ok(Self { pcs })
     }
 
     /// Get the pitch classes in this set.
@@ -63,12 +108,12 @@ impl PitchClassSet {
     ///     [0, 2, 4, 7]
     #[getter]
     fn pitch_classes(&self) -> Vec<i8> {
-        self.pcs.clone()
+        self.pcs_i8()
     }
 
     /// Compute the normal form of the pitch-class set.
     ///
-    /// The normal form is the most “compact” ordering of the set when treated as
+    /// The normal form is the most "compact" ordering of the set when treated as
     /// an ascending scale within a single octave.
     ///
     /// Algorithm:
@@ -83,7 +128,7 @@ impl PitchClassSet {
     ///        from the left:
     ///            - Then (second-to-last - first), if still tied,
     ///            - Then (third-to-last - first), and so on
-    ///        Keep only the most “left-packed” (most compact toward the beginning).
+    ///        Keep only the most "left-packed" (most compact toward the beginning).
     ///
     ///     4. If a tie still remains, choose the ordering whose first pitch class
     ///        is smallest.
@@ -99,7 +144,7 @@ impl PitchClassSet {
     ///     `src/specs/pitchclass.md`.
     #[getter]
     fn normal_form(&self) -> Vec<i8> {
-        get_normal_form(&sorted_pitch_classes(&self.pcs))
+        normal_form(&sorted_pcs_i8(&self.pcs))
     }
 
     /// Compute the Rahn prime form of the pitch-class set.
@@ -112,13 +157,13 @@ impl PitchClassSet {
     ///     list[int]: The prime form of the set as pitch classes in the range 0–11.
     #[getter]
     fn prime_form(&self) -> Vec<i8> {
-        let sorted = sorted_pitch_classes(&self.pcs);
-        let nf = get_normal_form(&sorted);
-        let mut inverted: Vec<i8> = sorted.iter().copied().map(invert_pc).collect();
+        let sorted = sorted_pcs_i8(&self.pcs);
+        let nf = normal_form(&sorted);
+        let mut inverted: Vec<i8> = self.pcs.iter().map(|pc| pc.invert().raw()).collect();
         inverted.sort_unstable();
-        let nf_inv = get_normal_form(&inverted);
-        let prime_from_set = transpose_prime_to_zero(&nf);
-        let prime_from_inv = transpose_prime_to_zero(&nf_inv);
+        let nf_inv = normal_form(&inverted);
+        let prime_from_set = transpose_to_zero(&nf);
+        let prime_from_inv = transpose_to_zero(&nf_inv);
         std::cmp::min(prime_from_set, prime_from_inv)
     }
 
@@ -159,8 +204,8 @@ impl PitchClassSet {
     ///     >>> pcs.interval_vector
     ///     [0, 0, 1, 1, 1, 0]
     #[getter]
-    fn interval_vector(&self) -> PyResult<Vec<i8>> {
-        Ok(interval_class_vector(&self.pcs))
+    fn interval_vector(&self) -> Vec<i8> {
+        interval_class_vector(&self.pcs_i8())
     }
 
     /// Generate all subsets of the pitch-class set.
@@ -176,23 +221,21 @@ impl PitchClassSet {
     /// Returns:
     ///     list[PitchClassSet]: Subsets of the pitch-class set whose length is at least ``min_size``.
     #[pyo3(signature = (min_size = 0))]
-    fn subsets(&self, min_size: usize) -> PyResult<Vec<Self>> {
-        let mut subsets = Vec::new();
+    fn subsets(&self, min_size: usize) -> Vec<Self> {
         let n = self.pcs.len();
-        for i in 0..(1usize << n) {
-            if (i.count_ones() as usize) < min_size {
-                continue;
-            }
-            let subset = self
-                .pcs
-                .iter()
-                .enumerate()
-                .filter(|(j, _)| i & (1usize << j) != 0)
-                .map(|(_, &pc)| pc)
-                .collect();
-            subsets.push(Self { pcs: subset });
-        }
-        Ok(subsets)
+        (0..(1usize << n))
+            .filter(|i| i.count_ones() as usize >= min_size)
+            .map(|i| {
+                let pcs = self
+                    .pcs
+                    .iter()
+                    .enumerate()
+                    .filter(|(j, _)| i & (1usize << j) != 0)
+                    .map(|(_, &pc)| pc)
+                    .collect();
+                Self { pcs }
+            })
+            .collect()
     }
 
     /// Count how many pitch classes are shared between this set and its transposition by ``tn``
@@ -210,7 +253,7 @@ impl PitchClassSet {
     ///
     /// Under **tritone** transposition, i.e. ``Tn6``, common tones are **twice** the entry in
     /// the interval-class vector.
-    /// See Open Music Theory, “Common Tones under Transposition”
+    /// See Open Music Theory, "Common Tones under Transposition"
     /// (<https://openmusictheory.github.io/commonTonesUnderTransposition.html>).
     ///
     /// Args:
@@ -218,18 +261,18 @@ impl PitchClassSet {
     ///
     /// Returns:
     ///     int: Number of common pitch classes between pitch-class set and its transposition by ``tn``.
-    fn count_common_tones_under_tn(&self, tn: i8) -> PyResult<i8> {
+    fn count_common_tones_under_tn(&self, tn: i8) -> i8 {
         let n = tn.rem_euclid(12);
         if n == 0 {
-            return Ok(self.pcs.len() as i8);
+            return self.pcs.len() as i8;
         }
-        let iv = interval_class_vector(&self.pcs);
-        let ic = semitones_to_interval_class(n);
+        let iv = interval_class_vector(&self.pcs_i8());
+        let ic = semitones_to_ic(n);
         let mut count = iv[(ic - 1) as usize];
         if n == 6 {
             count *= 2;
         }
-        Ok(count)
+        count
     }
 
     /// Transpose the pitch-class set by a given number of semitones.
@@ -241,64 +284,23 @@ impl PitchClassSet {
     ///     tn (int): The number of semitones to transpose by.
     ///         Must be in the range -11 to 11.
     fn transpose_by(&self, tn: i8) -> PyResult<Self> {
-        semitone_guard(tn)?;
+        validate_semitones(tn)?;
         Ok(Self {
-            pcs: self.pcs.iter().map(|&pc| wrap_pc_0_11(pc + tn)).collect(),
+            pcs: self.pcs.iter().map(|&pc| pc.transpose(tn)).collect(),
         })
     }
 }
 
-fn sorted_pitch_classes(pcs: &[i8]) -> Vec<i8> {
-    let mut v = pcs.to_vec();
+// ============ Normal form / prime form ============
+
+fn sorted_pcs_i8(pcs: &[PitchClass]) -> Vec<i8> {
+    let mut v: Vec<i8> = pcs.iter().copied().map(PitchClass::raw).collect();
     v.sort_unstable();
     v
 }
 
-/// Counts of interval classes 1..=6 for all unordered pairs in the set.
-fn interval_class_vector(pcs: &[i8]) -> Vec<i8> {
-    let sorted = sorted_pitch_classes(pcs);
-    let n = sorted.len();
-    let mut counts = [0i8; 6];
-    for i in 0..n {
-        for j in (i + 1)..n {
-            let d = sorted[j] - sorted[i];
-            let ic = semitones_to_interval_class(d);
-            counts[(ic - 1) as usize] += 1;
-        }
-    }
-    counts.to_vec()
-}
-
-/// Map a pitch interval in semitones (1..=11) to its interval class (1..=6).
-#[inline]
-fn semitones_to_interval_class(d: i8) -> i8 {
-    debug_assert!((1..=11).contains(&d));
-    if d > 6 { 12 - d } else { d }
-}
-
-/// Normal form from sorted distinct pitch classes (`src/specs/pitchclass.md`).
-fn get_normal_form(sorted_pcs: &[i8]) -> Vec<i8> {
-    let n = sorted_pcs.len();
-    match n {
-        0 => vec![],
-        1 => vec![sorted_pcs[0].rem_euclid(12)],
-        _ => std::iter::once(get_rotations(sorted_pcs))
-            .map(get_candidates)
-            .map(|candidates| break_ties(candidates, n))
-            .map(|winners| {
-                wrap_pitch_classes_line(
-                    winners
-                        .first()
-                        .expect("at least one rotation survives tie-breaking"),
-                )
-            })
-            .next()
-            .expect("once() always yields one item"),
-    }
-}
-
 /// Transpose a normal-order row so the first pitch class is 0 (`p - p₀` mod 12).
-fn transpose_prime_to_zero(line: &[i8]) -> Vec<i8> {
+fn transpose_to_zero(line: &[i8]) -> Vec<i8> {
     if line.is_empty() {
         return vec![];
     }
@@ -306,10 +308,24 @@ fn transpose_prime_to_zero(line: &[i8]) -> Vec<i8> {
     line.iter().map(|&p| (p - t).rem_euclid(12)).collect()
 }
 
+/// Normal form from sorted distinct pitch classes (`src/specs/pitchclass.md`).
+fn normal_form(sorted_pcs: &[i8]) -> Vec<i8> {
+    match sorted_pcs.len() {
+        0 => vec![],
+        1 => vec![sorted_pcs[0].rem_euclid(12)],
+        n => {
+            let rotations = build_rotations(sorted_pcs);
+            let candidates = trim_to_min_span(rotations);
+            let winners = break_ties(candidates, n);
+            wrap_line_to_pcs(winners.first().expect("at least one rotation survives tie-breaking"))
+        }
+    }
+}
+
 /// All cyclic rotations as linear pitch rows (`src/specs/pitchclass.md`).
 ///
 /// `sorted_pcs` must have length ≥ 2.
-fn get_rotations(sorted_pcs: &[i8]) -> Vec<Vec<i8>> {
+fn build_rotations(sorted_pcs: &[i8]) -> Vec<Vec<i8>> {
     let n = sorted_pcs.len();
     (0..n).map(|i| rotation(sorted_pcs, i)).collect()
 }
@@ -322,7 +338,7 @@ fn rotation(sorted_pcs: &[i8], start: usize) -> Vec<i8> {
 }
 
 /// Step 1 — keep rotations with minimal total span `r[n-1] - r[0]`.
-fn get_candidates(rotations: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
+fn trim_to_min_span(rotations: Vec<Vec<i8>>) -> Vec<Vec<i8>> {
     let n = rotations[0].len();
     let min_span = rotations
         .iter()
@@ -355,43 +371,48 @@ fn break_ties(mut candidates: Vec<Vec<i8>>, n: usize) -> Vec<Vec<i8>> {
 }
 
 /// Map linear pitches back to canonical pitch-class integers (`p % 12`, Euclidean modulus).
-fn wrap_pitch_classes_line(line: &[i8]) -> Vec<i8> {
+fn wrap_line_to_pcs(line: &[i8]) -> Vec<i8> {
     line.iter().map(|&p| p.rem_euclid(12)).collect()
 }
 
-fn semitone_guard(semitones: i8) -> PyResult<()> {
-    if !(-11..=11).contains(&semitones) {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "by_semitones must be within the range (-11)-11",
-        ));
+// ============ Interval-class vector & common tones ============
+
+/// Map a pitch interval (in semitones, any representative mod 12) to interval class 0–6.
+///
+/// `0` means unison/octave (interval ≡ 0 mod 12); classes `1`–`6` are the usual interval classes.
+fn semitones_to_ic(semitones: i8) -> i8 {
+    let d = semitones.rem_euclid(12);
+    if d == 0 {
+        0
+    } else if d > 6 {
+        12 - d
+    } else {
+        d
     }
-    Ok(())
 }
 
-fn pc_guard(pc: i8) -> PyResult<()> {
-    if !(0..=11).contains(&pc) {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "pc must be within the range 0-11",
-        ));
+/// Counts of interval classes 1..=6 for all unordered pairs in the set.
+fn interval_class_vector(pcs: &[i8]) -> Vec<i8> {
+    let mut sorted = pcs.to_vec();
+    sorted.sort_unstable();
+    let n = sorted.len();
+    let mut counts = [0i8; 6];
+    for i in 0..n {
+        for j in (i + 1)..n {
+            let d = sorted[j] - sorted[i];
+            let ic = semitones_to_ic(d);
+            counts[(ic - 1) as usize] += 1;
+        }
     }
-    Ok(())
+    counts.to_vec()
 }
 
-#[inline]
-fn wrap_pc_0_11(mut x: i8) -> i8 {
-    // x is in a small range (for transpose: -11..=22)
-    if x < 0 {
-        x += 12;
-    } else if x >= 12 {
-        x -= 12;
-    }
-    x
-}
+// ============ Free pyfunctions ============
 
-#[inline]
-fn invert_pc(pc: i8) -> i8 {
-    // (12 - pc) mod 12, but pc is 0..=11
-    if pc == 0 { 0 } else { 12 - pc }
+fn map_ordered_set<F: Fn(PitchClass) -> PitchClass>(set: &[i8], f: F) -> PyResult<Vec<i8>> {
+    set.iter()
+        .map(|&pc| PitchClass::try_new(pc).map(|p| f(p).raw()))
+        .collect()
 }
 
 /// Invert a pitch class around 0.
@@ -417,8 +438,7 @@ fn invert_pc(pc: i8) -> i8 {
 #[pyfunction]
 #[pyo3(signature = (pc))]
 pub fn invert(pc: i8) -> PyResult<i8> {
-    pc_guard(pc)?;
-    Ok(invert_pc(pc))
+    Ok(PitchClass::try_new(pc)?.invert().raw())
 }
 
 /// Transpose a pitch class by a given number of semitones.
@@ -442,9 +462,8 @@ pub fn invert(pc: i8) -> PyResult<i8> {
 #[pyfunction]
 #[pyo3(signature = (by_semitones, pc))]
 pub fn transpose(by_semitones: i8, pc: i8) -> PyResult<i8> {
-    semitone_guard(by_semitones)?;
-    pc_guard(pc)?;
-    Ok(wrap_pc_0_11(by_semitones + pc))
+    validate_semitones(by_semitones)?;
+    Ok(PitchClass::try_new(pc)?.transpose(by_semitones).raw())
 }
 
 /// Transpose an ordered pitch-class row by a given number of semitones.
@@ -469,14 +488,8 @@ pub fn transpose(by_semitones: i8, pc: i8) -> PyResult<i8> {
 #[pyfunction]
 #[pyo3(signature = (by_semitones, ordered_set))]
 pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
-    semitone_guard(by_semitones)?;
-
-    let mut out = Vec::with_capacity(ordered_set.len());
-    for &pc in &ordered_set {
-        pc_guard(pc)?;
-        out.push(wrap_pc_0_11(pc + by_semitones));
-    }
-    Ok(out)
+    validate_semitones(by_semitones)?;
+    map_ordered_set(&ordered_set, |pc| pc.transpose(by_semitones))
 }
 
 /// Invert an ordered pitch-class row around 0.
@@ -497,12 +510,7 @@ pub fn transpose_ordered_set(by_semitones: i8, ordered_set: Vec<i8>) -> PyResult
 #[pyfunction]
 #[pyo3(signature = (ordered_set))]
 pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
-    let mut out = Vec::with_capacity(ordered_set.len());
-    for &pc in &ordered_set {
-        pc_guard(pc)?;
-        out.push(invert_pc(pc));
-    }
-    Ok(out)
+    map_ordered_set(&ordered_set, PitchClass::invert)
 }
 
 /// Map a pitch interval (in semitones, any representative mod 12) to interval class 0–6.
@@ -511,10 +519,6 @@ pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
 /// interval classes for distinct pitch classes.
 #[pyfunction]
 #[pyo3(signature = (interval))]
-pub fn interval_class(interval: i8) -> PyResult<i8> {
-    let d = interval.rem_euclid(12);
-    if d == 0 {
-        return Ok(0);
-    }
-    Ok(semitones_to_interval_class(d))
+pub fn interval_class(interval: i8) -> i8 {
+    semitones_to_ic(interval)
 }

@@ -156,12 +156,7 @@ impl VoiceLeading {
 }
 
 fn validate_non_empty_pcs(pcs: &PitchClassSet) -> PyResult<()> {
-    if pcs.pcs.is_empty() {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "pitch-class set must not be empty",
-        ));
-    }
-    Ok(())
+    crate::error::require(!pcs.is_empty(), "pitch-class set must not be empty")
 }
 
 fn voicing_span(notes: &[i32]) -> i32 {
@@ -223,10 +218,11 @@ fn enumerate_permutation_in_range(
 }
 
 fn voicings_in_keynum_range(pcs: &PitchClassSet, min_keynum: i32, max_keynum: i32) -> Vec<Voicing> {
+    let pcs_raw = pcs.pcs_i8();
     let mut out = Vec::new();
     let mut notes = Vec::new();
     let mut raw = Vec::new();
-    for perm in permutations(&pcs.pcs) {
+    for perm in permutations(&pcs_raw) {
         raw.clear();
         enumerate_permutation_in_range(&perm, min_keynum, max_keynum, &mut notes, &mut raw);
         out.extend(raw.drain(..).map(|notes| Voicing { notes }));
@@ -243,9 +239,10 @@ fn voicings_in_keynum_range(pcs: &PitchClassSet, min_keynum: i32, max_keynum: i3
 #[pyo3(signature = (pcs, octave = 4))]
 pub fn voicings_from_pc_set(pcs: &PitchClassSet, octave: i32) -> PyResult<Vec<Voicing>> {
     validate_non_empty_pcs(pcs)?;
-    let anchor_pc = pcs.pcs[0];
+    let pcs_raw = pcs.pcs_i8();
+    let anchor_pc = pcs.first_pc_i8().expect("non-empty by validation");
     let anchor_midi = midi_at_octave(anchor_pc, octave);
-    let perms = permutations(&pcs.pcs);
+    let perms = permutations(&pcs_raw);
     Ok(perms
         .into_iter()
         .map(|perm| Voicing {
