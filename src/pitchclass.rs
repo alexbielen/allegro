@@ -320,7 +320,11 @@ fn normal_form(sorted_pcs: &[i8]) -> Vec<i8> {
             let rotations = build_rotations(sorted_pcs);
             let candidates = trim_to_min_span(rotations);
             let winners = break_ties(candidates, n);
-            wrap_line_to_pcs(winners.first().expect("at least one rotation survives tie-breaking"))
+            wrap_line_to_pcs(
+                winners
+                    .first()
+                    .expect("at least one rotation survives tie-breaking"),
+            )
         }
     }
 }
