@@ -26,6 +26,7 @@ __all__ = [
     "quadratic_bouncing_ball",
     "quantize",
     "rhythm_to_seconds",
+    "satisfy_pc",
     "transpose",
     "transpose_ordered_set",
     "voicings_from_pc_set",
@@ -798,6 +799,35 @@ def quantize(step: builtins.float, value: builtins.float) -> builtins.float:
     """
 
 def rhythm_to_seconds(num: builtins.int, den: builtins.int, bpm: builtins.float) -> builtins.float: ...
+
+def satisfy_pc(forte_num: builtins.str, pitch_classes: typing.Sequence[builtins.int]) -> builtins.list[builtins.list[builtins.int]]:
+    r"""
+    Find pitch-class completions for a Forte set class.
+    
+    Given a Forte number (e.g. ``"3-11B"``) and a list of distinct pitch classes,
+    this function returns all distinct ways to **add** pitch classes so that the
+    resulting set has that Forte number (using the same catalog as
+    :py:meth:`allegro.pitchclass.PitchClassSet.forte_num`).
+    
+    The function enumerates all 12 transpositions of the set's Rahn prime form and
+    keeps those transpositions that contain the given partial set. For each such
+    transposition it returns the sorted list of *missing* pitch classes. Results
+    are de-duplicated and returned in lexicographic order.
+    
+    Args:
+        forte_num (str): Forte number label (e.g. ``"3-11B"``).
+        pitch_classes (list[int]): Partial pitch-class collection, each 0–11 and unique.
+    
+    Returns:
+        list[list[int]]: Each inner list is a sorted collection of pitch classes
+            that can be added so that ``pitch_classes + missing`` has Forte number
+            ``forte_num``. Returns an empty list if there are no such completions
+            (including when the partial set already realizes the set class).
+    
+    Raises:
+        ValueError: If ``forte_num`` is not found in the Forte catalog.
+        ValueError: If any pitch class is outside 0–11 or duplicated.
+    """
 
 def transpose(by_semitones: builtins.int, pc: builtins.int) -> builtins.int:
     r"""

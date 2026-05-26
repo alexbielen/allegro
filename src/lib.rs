@@ -36,6 +36,7 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(pitchclass::transpose_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::invert_ordered_set, m)?)?;
     m.add_function(wrap_pyfunction!(pitchclass::interval_class, m)?)?;
+    m.add_function(wrap_pyfunction!(pitchclass::satisfy_pc, m)?)?;
     m.add_class::<pitchclass::PitchClassSet>()?;
 
     // voicing module (voicing.rs)
@@ -73,6 +74,7 @@ reexport_module_members!(
     "interval_class",
     "invert",
     "invert_ordered_set",
+    "satisfy_pc",
     "transpose",
     "transpose_ordered_set"
 );

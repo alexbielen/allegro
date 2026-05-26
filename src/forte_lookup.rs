@@ -4,9 +4,9 @@
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
-pub(crate) fn forte_for_prime_form(prime: &[i8]) -> Option<&'static str> {
+fn forte_catalog() -> &'static HashMap<Vec<i8>, &'static str> {
     static MAP: OnceLock<HashMap<Vec<i8>, &'static str>> = OnceLock::new();
-    let m = MAP.get_or_init(|| {
+    MAP.get_or_init(|| {
         let mut h = HashMap::new();
         h.insert(vec![], "0-1");
         h.insert(vec![0], "1-1");
@@ -361,6 +361,22 @@ pub(crate) fn forte_for_prime_form(prime: &[i8]) -> Option<&'static str> {
         h.insert(vec![0,1,2,3,4,5,6,7,8,9,10], "11-1");
         h.insert(vec![0,1,2,3,4,5,6,7,8,9,10,11], "12-1");
         h
-    });
-    m.get(prime).copied()
+    })
 }
+
+pub(crate) fn forte_for_prime_form(prime: &[i8]) -> Option<&'static str> {
+    forte_catalog().get(prime).copied()
+}
+
+pub(crate) fn prime_form_for_forte_num(forte: &str) -> Option<&'static [i8]> {
+    static INVERSE: OnceLock<HashMap<&'static str, Vec<i8>>> = OnceLock::new();
+    let m = INVERSE.get_or_init(|| {
+        let mut inverse = HashMap::new();
+        for (prime, forte_num) in forte_catalog().iter() {
+            inverse.insert(*forte_num, prime.clone());
+        }
+        inverse
+    });
+    m.get(forte).map(|v| v.as_slice())
+}
+
