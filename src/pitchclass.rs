@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use crate::forte_lookup::forte_for_prime_form;
+use crate::forte_lookup::{forte_for_prime_form, prime_form_for_forte_num};
 use crate::py_stub::{gen_stub_pyclass, gen_stub_pyfunction, gen_stub_pymethods};
 use crate::utils::has_unique_elements;
 
@@ -419,6 +419,50 @@ fn map_ordered_set<F: Fn(PitchClass) -> PitchClass>(set: &[i8], f: F) -> PyResul
         .collect()
 }
 
+fn satisfy_pc_for_forte(forte_num: &str, partial: &[i8]) -> PyResult<Vec<Vec<i8>>> {
+    crate::error::require(
+        has_unique_elements(partial),
+        "pitch classes must be unique",
+    )?;
+    let mut validated_partial = Vec::with_capacity(partial.len());
+    for &pc in partial {
+        validated_partial.push(PitchClass::try_new(pc)?.raw());
+    }
+
+    let prime = prime_form_for_forte_num(forte_num).ok_or_else(|| {
+        pyo3::exceptions::PyValueError::new_err(
+            "Forte number not found in catalog (expected Wikipedia/Rahn prime column)",
+        )
+    })?;
+
+    use std::collections::{BTreeSet, HashSet};
+
+    let partial_set: HashSet<i8> = validated_partial.iter().copied().collect();
+    let mut solutions: BTreeSet<Vec<i8>> = BTreeSet::new();
+
+    for t in 0..12 {
+        let transposed: Vec<i8> = prime
+            .iter()
+            .map(|&p| (p + t).rem_euclid(12))
+            .collect();
+        let transposed_set: HashSet<i8> = transposed.iter().copied().collect();
+
+        if partial_set.is_subset(&transposed_set) {
+            let missing: Vec<i8> = transposed_set
+                .difference(&partial_set)
+                .copied()
+                .collect();
+            if !missing.is_empty() {
+                let mut missing_sorted = missing;
+                missing_sorted.sort_unstable();
+                solutions.insert(missing_sorted);
+            }
+        }
+    }
+
+    Ok(solutions.into_iter().collect())
+}
+
 /// Invert a pitch class around 0.
 ///
 /// This computes the inversion of a pitch class by subtracting it from 12
@@ -530,4 +574,36 @@ pub fn invert_ordered_set(ordered_set: Vec<i8>) -> PyResult<Vec<i8>> {
 #[pyo3(signature = (interval))]
 pub fn interval_class(interval: i8) -> i8 {
     semitones_to_ic(interval)
+}
+
+/// Find pitch-class completions for a Forte set class.
+///
+/// Given a Forte number (e.g. ``"3-11B"``) and a list of distinct pitch classes,
+/// this function returns all distinct ways to **add** pitch classes so that the
+/// resulting set has that Forte number (using the same catalog as
+/// :py:meth:`allegro.pitchclass.PitchClassSet.forte_num`).
+///
+/// The function enumerates all 12 transpositions of the set's Rahn prime form and
+/// keeps those transpositions that contain the given partial set. For each such
+/// transposition it returns the sorted list of *missing* pitch classes. Results
+/// are de-duplicated and returned in lexicographic order.
+///
+/// Args:
+///     forte_num (str): Forte number label (e.g. ``"3-11B"``).
+///     pitch_classes (list[int]): Partial pitch-class collection, each 0–11 and unique.
+///
+/// Returns:
+///     list[list[int]]: Each inner list is a sorted collection of pitch classes
+///         that can be added so that ``pitch_classes + missing`` has Forte number
+///         ``forte_num``. Returns an empty list if there are no such completions
+///         (including when the partial set already realizes the set class).
+///
+/// Raises:
+///     ValueError: If ``forte_num`` is not found in the Forte catalog.
+///     ValueError: If any pitch class is outside 0–11 or duplicated.
+#[gen_stub_pyfunction]
+#[pyfunction]
+#[pyo3(signature = (forte_num, pitch_classes))]
+pub fn satisfy_pc(forte_num: &str, pitch_classes: Vec<i8>) -> PyResult<Vec<Vec<i8>>> {
+    satisfy_pc_for_forte(forte_num, &pitch_classes)
 }

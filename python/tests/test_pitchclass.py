@@ -13,6 +13,7 @@ from allegro.pitchclass import (
     interval_class,
     invert,
     invert_ordered_set,
+    satisfy_pc,
     transpose,
     transpose_ordered_set,
 )
@@ -539,3 +540,43 @@ class TestPitchClassSetNormalFormBenchmark:
         # warm up
         f(pcs)
         benchmark(f, pcs)
+
+
+class TestSatisfyPc:
+    def test_examples_trichord_and_tetrachord(self):
+        assert satisfy_pc("3-11B", [4, 8]) == [[11]]
+        assert satisfy_pc("4-20", [0, 8]) == [[1, 5], [3, 7]]
+
+    def test_empty_partial_returns_all_transpositions(self):
+        # 3-11B has prime form [0, 4, 7]; all 12 transpositions are valid.
+        results = satisfy_pc("3-11B", [])
+        assert len(results) == 12
+        for missing in results:
+            assert len(missing) == 3
+            pcs = PitchClassSet(missing)
+            assert pcs.forte_num == "3-11B"
+
+    def test_round_trip_completions_match_forte(self):
+        partial = [4, 8]
+        forte = "3-11B"
+        for missing in satisfy_pc(forte, partial):
+            pcs = PitchClassSet(sorted(set(partial + missing)))
+            assert pcs.forte_num == forte
+
+    def test_unknown_forte_raises(self):
+        with pytest.raises(ValueError):
+            satisfy_pc("not-a-forte", [0])
+
+    def test_duplicate_partial_raises(self):
+        with pytest.raises(ValueError, match="unique"):
+            satisfy_pc("3-11B", [4, 4])
+
+    def test_out_of_range_partial_raises(self):
+        with pytest.raises(ValueError):
+            satisfy_pc("3-11B", [12])
+
+    def test_impossible_partial_returns_empty(self):
+        assert satisfy_pc("3-11B", [0, 1]) == []
+
+    def test_already_complete_returns_empty(self):
+        assert satisfy_pc("3-11B", [4, 8, 11]) == []
