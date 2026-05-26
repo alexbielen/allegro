@@ -152,28 +152,24 @@ impl PitchClassSet {
 
     /// Compute the Rahn prime form of the pitch-class set.
     ///
-    /// This computes the normal form of the set and the normal form of its
-    /// inversion, transposes both so that they begin on 0, and returns the
-    /// lexicographically smaller result.
+    /// This computes the normal form of the set, then transposes it so that it
+    /// begins on 0. For asymmetrical sets, this preserves the orientation of
+    /// the set (as in the Wikipedia/Forte A/B columns) rather than collapsing
+    /// inversionally related forms to a single Rahn lexicographic minimum.
     ///
     /// Returns:
     ///     list[int]: The prime form of the set as pitch classes in the range 0–11.
     #[getter]
     fn prime_form(&self) -> Vec<i8> {
         let sorted = sorted_pcs_i8(&self.pcs);
-        let nf = normal_form(&sorted);
-        let mut inverted: Vec<i8> = self.pcs.iter().map(|pc| pc.invert().raw()).collect();
-        inverted.sort_unstable();
-        let nf_inv = normal_form(&inverted);
-        let prime_from_set = transpose_to_zero(&nf);
-        let prime_from_inv = transpose_to_zero(&nf_inv);
-        std::cmp::min(prime_from_set, prime_from_inv)
+        transposed_normal_form(&sorted)
     }
 
     /// Look up the Forte number for the pitch-class set.
     ///
-    /// The set is converted to Rahn prime form and then matched against the Forte
-    /// catalog.
+    /// The set is converted to its oriented Rahn prime form (normal form T0,
+    /// preserving inversional orientation) and then matched against the Forte
+    /// catalog (Wikipedia/Rahn prime column, including A/B variants).
     ///
     /// Returns:
     ///     str: The Forte number for the set.
@@ -300,6 +296,11 @@ fn sorted_pcs_i8(pcs: &[PitchClass]) -> Vec<i8> {
     let mut v: Vec<i8> = pcs.iter().copied().map(PitchClass::raw).collect();
     v.sort_unstable();
     v
+}
+
+/// Normal form, then transpose so the first pitch class is 0.
+fn transposed_normal_form(sorted_pcs: &[i8]) -> Vec<i8> {
+    transpose_to_zero(&normal_form(sorted_pcs))
 }
 
 /// Transpose a normal-order row so the first pitch class is 0 (`p - p₀` mod 12).

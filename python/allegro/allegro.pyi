@@ -230,9 +230,10 @@ class PitchClassSet:
         r"""
         Compute the Rahn prime form of the pitch-class set.
         
-        This computes the normal form of the set and the normal form of its
-        inversion, transposes both so that they begin on 0, and returns the
-        lexicographically smaller result.
+        This computes the normal form of the set, then transposes it so that it
+        begins on 0. For asymmetrical sets, this preserves the orientation of
+        the set (as in the Wikipedia/Forte A/B columns) rather than collapsing
+        inversionally related forms to a single Rahn lexicographic minimum.
         
         Returns:
             list[int]: The prime form of the set as pitch classes in the range 0–11.
@@ -242,8 +243,9 @@ class PitchClassSet:
         r"""
         Look up the Forte number for the pitch-class set.
         
-        The set is converted to Rahn prime form and then matched against the Forte
-        catalog.
+        The set is converted to its oriented Rahn prime form (normal form T0,
+        preserving inversional orientation) and then matched against the Forte
+        catalog (Wikipedia/Rahn prime column, including A/B variants).
         
         Returns:
             str: The Forte number for the set.
