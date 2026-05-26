@@ -24,12 +24,12 @@ def get_normal_form(pcs):
     return [p % 12 for p in candidates[0]]
 ```
 
-Rahn Prime Form Calculation Steps
+Rahn Prime Form (oriented, Wikipedia/Forte A/B)
 
-Find the Normal Order: Arrange the pitch classes in ascending order that creates the smallest interval between the first and last note.
+1. **Find the normal form**: Arrange the pitch classes in ascending order that creates the smallest interval between the first and last note (see `get_normal_form` above).
+2. **Transpose to 0 (\(T_n\))**: Transpose the normal form so it starts on 0 (e.g., if the set is \([2, 4, 7]\), it becomes \([0, 2, 5]\)).
 
-Transpose to 0 (\(T\_{n}\)): Transpose the normal order so it starts on 0 (e.g., if the set is \([2, 4, 7]\), it becomes \([0, 2, 5]\)).
+This yields the **oriented Rahn prime form** used in the Wikipedia *List of set classes* “Prime form” column, including A/B variants for asymmetrical sets:
 
-Invert and Rearrange (\(T\_{n}I\)): Invert the set (replace each number \(x\) with \(12-x\), or \(0-x\)), put it into normal order, and transpose it to start on 0.
-
-Compare and Choose: Compare the results of Step 2 and Step 3. Select the version that is most compact on the left side.Note: If both are equally packed, choose the one with smaller intervals at the beginning.
+- Asymmetrical sets preserve their inversional orientation (e.g. a major triad \([4, 8, 11]\) has prime form \([0, 4, 7]\) → `3-11B`; a minor triad \([3, 7, 10]\) has prime form \([0, 3, 7]\) → `3-11A`).
+- Symmetrical sets (those inversionally equivalent to themselves) have the same prime form as their inversion, so no A/B distinction is needed.

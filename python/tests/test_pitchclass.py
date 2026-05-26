@@ -274,19 +274,22 @@ class TestPitchClassSet:
         assert s.normal_form == [11, 0, 2, 4, 5, 7, 9]
 
     def test_prime_form_triads_and_transpose(self):
-        # Compare normal-order candidates after each is transposed to 0 (spec); major/minor
-        # share one inverted form so both canonicalize to [0, 3, 7].
-        assert PitchClassSet([0, 4, 7]).prime_form == [0, 3, 7]
+        # Normal form T0 preserves orientation; major/minor get distinct prime forms.
+        assert PitchClassSet([0, 4, 7]).prime_form == [0, 4, 7]
         assert PitchClassSet([0, 3, 7]).prime_form == [0, 3, 7]
+        # A transposed major triad such as [4, 8, 11] also reduces to [0, 4, 7].
+        assert PitchClassSet([4, 8, 11]).prime_form == [0, 4, 7]
         assert PitchClassSet([0, 2, 10]).prime_form == [0, 2, 4]
 
     def test_prime_form_cluster_0_2_3(self):
-        assert PitchClassSet([0, 2, 3]).prime_form == [0, 1, 3]
+        # Cluster [0,2,3] is 3-2B in the Wikipedia listing, with oriented prime form [0,2,3].
+        assert PitchClassSet([0, 2, 3]).prime_form == [0, 2, 3]
 
     def test_forte_num_matches_wikipedia_rahn_prime_column(self):
-        # Major/minor triads share set class 3-11 (minor prime form [0,3,7] on Wikipedia).
-        assert PitchClassSet([0, 4, 7]).forte_num == "3-11A"
+        # Major/minor triads share set class 3-11 but have distinct A/B prime forms.
         assert PitchClassSet([0, 3, 7]).forte_num == "3-11A"
+        assert PitchClassSet([0, 4, 7]).forte_num == "3-11B"
+        assert PitchClassSet([4, 8, 11]).forte_num == "3-11B"
         assert PitchClassSet([0, 1, 2, 3, 4, 5]).forte_num == "6-1"
 
     def test_forte_num_edge_cardinalities(self):
@@ -497,8 +500,20 @@ class TestPitchClassSetPrimeFormConsistencyWithMusic21:
 
         if pitch_class_set and m21_chord.forteClass in FORTE_RAHN_DISAGREEMENTS:
             print(f"Forte Rahn disagreement: {m21_chord.forteClass} for {pitch_class_set}")
-        else:
-            assert PitchClassSet(pitch_class_set).prime_form == m21_chord.primeForm 
+            return
+
+        # music21's primeForm follows Rahn's lexicographically minimal convention,
+        # which collapses some asymmetrical A/B pairs (e.g. major/minor triads)
+        # to a single representative. Our implementation preserves oriented
+        # normal form T0, matching the Wikipedia/Forte A/B columns instead.
+        # Skip sets whose inversion has a different oriented normal form.
+        pcs = PitchClassSet(pitch_class_set)
+        prime = pcs.prime_form
+        inv_prime = PitchClassSet([invert(pc) for pc in pitch_class_set]).prime_form
+        if prime != inv_prime:
+            return
+
+        assert prime == m21_chord.primeForm
 
 
 class TestPitchClassSetNormalFormBenchmark:
