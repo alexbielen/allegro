@@ -71,7 +71,18 @@ pub enum FitMode {
     Clamp,
 }
 
-/// Fold a distance along a span with reflection
+/// Range and distance past the nearest bound, only if `rem_euclid` / division is safe. Otherwise None.
+fn distance_past_bound_safe(min: f64, max: f64, num: f64) -> Option<(f64, f64)> {
+    let range = max - min;
+    let exceeded_bound = if num > max { max } else { min };
+    let distance_past = num - exceeded_bound;
+    if !range.is_finite() || !(distance_past / range).is_finite() {
+        return None;
+    }
+    Some((range, distance_past))
+}
+
+/// Fold a distance along a span with reflection.
 fn triangle_fold(distance_past_bound: f64, span: f64) -> f64 {
     let segment_index = (distance_past_bound / span).floor();
     let is_reflecting = (segment_index * 0.5).fract() != 0.0;
@@ -81,6 +92,109 @@ fn triangle_fold(distance_past_bound: f64, span: f64) -> f64 {
     } else {
         position_in_span
     }
+}
+
+/// Maps an out-of-range value back into ``[min, max]``.
+///
+/// Implementors own the algorithm and the numerical-safety check for a single
+/// fit mode. The orchestrator (`fit_with`) calls `fit_outside` only after
+/// verifying that `num` is outside `[min, max]`, both bounds are finite, and
+/// `max - min > 0`.
+trait FitStrategy {
+    /// Map `num` back into `[min, max]`. Returns `None` when the operation
+    /// is not numerically safe (e.g. overflow); the orchestrator falls back
+    /// to clamping in that case.
+    fn fit_outside(&self, min: f64, max: f64, num: f64) -> Option<f64>;
+}
+
+struct WrapStrategy;
+
+impl FitStrategy for WrapStrategy {
+    fn fit_outside(&self, min: f64, max: f64, num: f64) -> Option<f64> {
+        let (range, distance_past) = distance_past_bound_safe(min, max, num)?;
+        Some(min + distance_past.rem_euclid(range))
+    }
+}
+
+struct ReflectStrategy;
+
+impl FitStrategy for ReflectStrategy {
+    fn fit_outside(&self, min: f64, max: f64, num: f64) -> Option<f64> {
+        let (range, distance_past) = distance_past_bound_safe(min, max, num)?;
+        let offset = triangle_fold(distance_past.abs(), range);
+        Some(if num > max {
+            max - offset
+        } else {
+            min + offset
+        })
+    }
+}
+
+struct BounceStrategy;
+
+impl FitStrategy for BounceStrategy {
+    fn fit_outside(&self, min: f64, max: f64, num: f64) -> Option<f64> {
+        let range = max - min;
+        if !range.is_finite() || !(num.abs() / range).is_finite() {
+            return None;
+        }
+        let offset = triangle_fold(num.abs(), range);
+        Some(if num >= 0.0 {
+            min + offset
+        } else {
+            max - offset
+        })
+    }
+}
+
+struct ClampStrategy;
+
+impl FitStrategy for ClampStrategy {
+    fn fit_outside(&self, min: f64, max: f64, num: f64) -> Option<f64> {
+        Some(if num > max { max } else { min })
+    }
+}
+
+impl FitMode {
+    /// Single dispatch site mapping each `FitMode` to its strategy. Adding a
+    /// new mode means a new struct + `impl FitStrategy` plus one line here;
+    /// no other code in this module needs to change.
+    fn strategy(&self) -> &'static dyn FitStrategy {
+        match self {
+            FitMode::Wrap => &WrapStrategy,
+            FitMode::Reflect => &ReflectStrategy,
+            FitMode::Bounce => &BounceStrategy,
+            FitMode::Clamp => &ClampStrategy,
+        }
+    }
+}
+
+/// Validate inputs and delegate to a strategy. Mode-agnostic — adding a new
+/// fit mode does not require touching this function.
+fn fit_with(strategy: &dyn FitStrategy, min: f64, max: f64, num: f64) -> PyResult<f64> {
+    if num >= min && num <= max {
+        return Ok(num);
+    }
+
+    if !min.is_finite() || !max.is_finite() {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "min and max must be finite",
+        ));
+    }
+
+    let range = max - min;
+    if range <= 0.0 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "range [lb, ub] must have positive width (lb < ub)",
+        ));
+    }
+
+    let raw = strategy
+        .fit_outside(min, max, num)
+        .unwrap_or_else(|| num.clamp(min, max));
+    // Clamp to [min, max] so FP rounding/underflow never violates the contract (e.g. when
+    // range loses precision and reflect yields a value just outside the interval).
+    Ok(raw.clamp(min, max))
 }
 
 #[gen_stub_pyfunction]
@@ -120,58 +234,7 @@ fn triangle_fold(distance_past_bound: f64, span: f64) -> f64 {
 ///     - Bounce mode will revert to Clamp mode when |num| / range is not finite due
 ///       to an overflow.
 pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
-    if num >= min && num <= max {
-        return Ok(num);
-    }
-
-    if !min.is_finite() || !max.is_finite() {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "min and max must be finite",
-        ));
-    }
-
-    let range = max - min;
-    if range <= 0.0 {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "range [lb, ub] must have positive width (lb < ub)",
-        ));
-    }
-
-    let exceeded_bound = if num > max { max } else { min };
-    let distance_past = num - exceeded_bound;
-
-    // rem_euclid and triangle_fold divide by range; when the quotient overflows we get nan.
-    let wrap_reflect_rem_safe = range.is_finite() && (distance_past / range).is_finite();
-    let bounce_rem_safe = range.is_finite() && (num.abs() / range).is_finite();
-
-    let raw = match mode {
-        FitMode::Wrap => wrap_reflect_rem_safe.then(|| min + distance_past.rem_euclid(range)),
-
-        FitMode::Reflect => wrap_reflect_rem_safe.then(|| {
-            let offset = triangle_fold(distance_past.abs(), range);
-            if num > max {
-                max - offset
-            } else {
-                min + offset
-            }
-        }),
-
-        FitMode::Bounce => bounce_rem_safe.then(|| {
-            let offset = triangle_fold(num.abs(), range);
-            if num >= 0.0 {
-                min + offset
-            } else {
-                max - offset
-            }
-        }),
-
-        FitMode::Clamp => Some(exceeded_bound),
-    };
-
-    let result = raw.unwrap_or_else(|| num.clamp(min, max));
-    // Clamp to [min, max] so FP rounding/underflow never violates the contract (e.g. when
-    // range loses precision and reflect yields a value just outside the interval).
-    Ok(result.clamp(min, max))
+    fit_with(mode.strategy(), min, max, num)
 }
 
 #[gen_stub_pyfunction]
@@ -193,7 +256,10 @@ pub fn fit(mode: FitMode, min: f64, max: f64, num: f64) -> PyResult<f64> {
 ///     ValueError: If ``max - min`` is not positive (i.e., ``min >= max``).
 ///     ValueError: If any of the values in ``nums`` are not finite.
 pub fn fit_list(mode: FitMode, min: f64, max: f64, nums: Vec<f64>) -> PyResult<Vec<f64>> {
-    nums.iter().map(|num| fit(mode, min, max, *num)).collect()
+    let strategy = mode.strategy();
+    nums.into_iter()
+        .map(|num| fit_with(strategy, min, max, num))
+        .collect()
 }
 
 #[gen_stub_pyfunction]
