@@ -17,6 +17,7 @@ if __name__ == "__main__":
         if len(subset.pitch_classes) == 5:
             mystic_five_note_subsets.append(subset)
 
+    
 
     corpus = []
 
@@ -31,25 +32,44 @@ if __name__ == "__main__":
                     corpus.append(Voicing(transposed_voicing))
 
 
+    def delta_intervals(starting_voicing, voicing):
+        differences = []
 
-    nice_voicing = Voicing([58, 64, 69, 74, 78])
+        for x in voicing.notes:
+            if x not in starting_voicing.notes:
+                differences.append(x)
 
-    harmonic_series_like = Voicing([48, 67, 76, 82, 86])
+        return differences
+
+
+
+
+
 
 
     def distance_to_starting_voicing(starting_voicing):
+        sv_set = PitchClassSet([x % 12 for x in starting_voicing.notes])
+        starting_pitch_names = [keynum_to_pitch(x).name for x in starting_voicing.notes]
+        print(f"starting voicing: {starting_pitch_names} is {sv_set.forte_num}")
         for voicing in corpus:
             distance = starting_voicing.distance_to(voicing, DistanceMode.SumAbs)
 
+
             if voicing.notes[0] != starting_voicing.notes[0] and distance < 5:
                 pc = PitchClassSet([x % 12 for x in voicing.notes])
-                pc2 = PitchClassSet([x % 12 for x in starting_voicing.notes])
                 pitch_names = [keynum_to_pitch(x).name for x in voicing.notes]
-                pitch_names2 = [keynum_to_pitch(x).name for x in starting_voicing.notes]
-                print(f"{pitch_names} to {pitch_names2} is {distance} -- {pc.prime_form} {pc.forte_num} -- {pc2.prime_form} {pc2.forte_num}") 
+                diffs = delta_intervals(starting_voicing, voicing)
+                diffs_set = PitchClassSet([x % 12 for x in diffs])
+                print(f"{pitch_names} is {pc.forte_num} -- distance {distance} -- diff: {diffs} -- {diffs_set.forte_num}, {diffs_set.interval_vector}")
+                print(f"{voicing.notes}")
 
 
-    distance_to_starting_voicing(harmonic_series_like)
+
+
+    nice_voicing = Voicing([57, 64, 72, 74, 78])
+    harmonic_series_like = Voicing([48, 67, 76, 82, 86])
+
+    distance_to_starting_voicing(nice_voicing)
 
 
 
