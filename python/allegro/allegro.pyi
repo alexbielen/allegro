@@ -340,6 +340,30 @@ class PitchClassSet:
         Args:
             tn (int): The number of semitones to transpose by.
                 Must be in the range -11 to 11.
+        
+        Returns:
+            PitchClassSet: The transposed pitch-class set.
+        
+        Raises:
+            ValueError: If ``tn`` is outside the range -11 to 11.
+        
+        Example:
+            >>> pcs.transpose_by(1)
+            PitchClassSet([1, 3, 5, 8])
+        """
+    def complement(self) -> PitchClassSet:
+        r"""
+        Return the chromatic complement of this pitch-class set.
+        
+        The complement contains every pitch class in the range 0–11 that is not
+        in this set. The result is returned in ascending order.
+        
+        Returns:
+            PitchClassSet: The complement within the twelve pitch classes.
+        
+        Example:
+            >>> PitchClassSet([0, 1, 2, 3]).complement().forte_num
+            '8-1'
         """
 
 @typing.final
