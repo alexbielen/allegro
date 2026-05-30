@@ -7,6 +7,7 @@ mod py_stub;
 mod error;
 mod forte_lookup;
 mod midi;
+mod mnx;
 mod numbers;
 mod physical;
 mod pitchclass;
@@ -64,6 +65,30 @@ fn allegro(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m
     )?)?;
 
+    // mnx module (mnx.rs)
+    m.add_class::<mnx::NoteStep>()?;
+    m.add_class::<mnx::NoteValueBase>()?;
+    m.add_class::<mnx::ClefSign>()?;
+    m.add_class::<mnx::BarlineType>()?;
+    m.add_class::<mnx::MnxPitch>()?;
+    m.add_class::<mnx::MnxNoteValue>()?;
+    m.add_class::<mnx::MnxRest>()?;
+    m.add_class::<mnx::MnxNote>()?;
+    m.add_class::<mnx::MnxEvent>()?;
+    m.add_class::<mnx::MnxSequence>()?;
+    m.add_class::<mnx::MnxClef>()?;
+    m.add_class::<mnx::MnxPositionedClef>()?;
+    m.add_class::<mnx::MnxKeySignature>()?;
+    m.add_class::<mnx::MnxTimeSignature>()?;
+    m.add_class::<mnx::MnxBarline>()?;
+    m.add_class::<mnx::MnxTempo>()?;
+    m.add_class::<mnx::MnxMeasureGlobal>()?;
+    m.add_class::<mnx::MnxGlobalData>()?;
+    m.add_class::<mnx::MnxMetadata>()?;
+    m.add_class::<mnx::MnxPartMeasure>()?;
+    m.add_class::<mnx::MnxPart>()?;
+    m.add_class::<mnx::MnxDocument>()?;
+
     Ok(())
 }
 
@@ -109,5 +134,30 @@ reexport_module_members!(
 reexport_module_members!(
     "allegro.quadratic" from "allegro.allegro";
     "quadratic_bouncing_ball"
+);
+reexport_module_members!(
+    "allegro.mnx" from "allegro.allegro";
+    "BarlineType",
+    "ClefSign",
+    "MnxBarline",
+    "MnxClef",
+    "MnxDocument",
+    "MnxEvent",
+    "MnxGlobalData",
+    "MnxKeySignature",
+    "MnxMeasureGlobal",
+    "MnxMetadata",
+    "MnxNote",
+    "MnxNoteValue",
+    "MnxPart",
+    "MnxPartMeasure",
+    "MnxPitch",
+    "MnxPositionedClef",
+    "MnxRest",
+    "MnxSequence",
+    "MnxTempo",
+    "MnxTimeSignature",
+    "NoteStep",
+    "NoteValueBase"
 );
 define_stub_info_gatherer!(stub_info);

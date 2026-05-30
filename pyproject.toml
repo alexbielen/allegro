@@ -44,6 +44,7 @@ generate-init-py = [
     "allegro.midi",
     "allegro.boids",
     "allegro.quadratic",
+    "allegro.mnx",
 ]
 
 [tool.bandit]
