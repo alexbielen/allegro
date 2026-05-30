@@ -979,7 +979,8 @@ impl MnxPart {
 ///                         sign=ClefSign.G, staff_position=-2
 ///                     ))],
 ///                     sequences=[MnxSequence(content=[
-///                         MnxEvent(
+///                     sequences=[MnxSequence(content=[
+///                         MnxEvent.note(
 ///                             duration=MnxNoteValue(base=NoteValueBase.Whole),
 ///                             notes=[MnxNote(pitch=MnxPitch(
 ///                                 step=NoteStep.C, octave=4
