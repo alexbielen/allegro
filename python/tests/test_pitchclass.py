@@ -348,6 +348,40 @@ class TestPitchClassSet:
             PitchClassSet([12])
 
 
+class TestPitchClassSetComplement:
+    def test_empty_set_complement_is_chromatic(self):
+        assert PitchClassSet([]).complement().pitch_classes == list(range(12))
+        assert PitchClassSet([]).complement().forte_num == "12-1"
+
+    def test_chromatic_complement_is_empty(self):
+        assert PitchClassSet(list(range(12))).complement().pitch_classes == []
+        assert PitchClassSet(list(range(12))).complement().forte_num == "0-1"
+
+    def test_complement_returns_ascending_order(self):
+        assert PitchClassSet([7, 0, 11]).complement().pitch_classes == [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            8,
+            9,
+            10,
+        ]
+
+    def test_complement_forte_examples(self):
+        assert PitchClassSet([0, 1, 2, 3]).complement().forte_num == "8-1"
+        assert PitchClassSet([0, 1, 2, 3]).complement().prime_form == list(range(8))
+
+        assert PitchClassSet([0, 1, 3, 4, 6, 7, 9, 10]).complement().forte_num == "4-28"
+        assert PitchClassSet([0, 1, 2, 3, 6, 7, 9]).complement().forte_num == "5-19B"
+
+    def test_double_complement_returns_original_cardinality(self):
+        s = PitchClassSet([0, 4, 7, 9])
+        assert s.complement().complement().pitch_classes == sorted(s.pitch_classes)
+
+
 class TestPitchClassSetSubsets:
     """Tests for `PitchClassSet.subsets()` (powerset of the pitch-class set)."""
 

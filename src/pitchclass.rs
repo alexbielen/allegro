@@ -282,11 +282,41 @@ impl PitchClassSet {
     /// Args:
     ///     tn (int): The number of semitones to transpose by.
     ///         Must be in the range -11 to 11.
+    ///
+    /// Returns:
+    ///     PitchClassSet: The transposed pitch-class set.
+    ///
+    /// Raises:
+    ///     ValueError: If ``tn`` is outside the range -11 to 11.
+    ///
+    /// Example:
+    ///     >>> pcs.transpose_by(1)
+    ///     PitchClassSet([1, 3, 5, 8])
     fn transpose_by(&self, tn: i8) -> PyResult<Self> {
         validate_semitones(tn)?;
         Ok(Self {
             pcs: self.pcs.iter().map(|&pc| pc.transpose(tn)).collect(),
         })
+    }
+
+    /// Return the chromatic complement of this pitch-class set.
+    ///
+    /// The complement contains every pitch class in the range 0–11 that is not
+    /// in this set. The result is returned in ascending order.
+    ///
+    /// Returns:
+    ///     PitchClassSet: The complement within the twelve pitch classes.
+    ///
+    /// Example:
+    ///     >>> PitchClassSet([0, 1, 2, 3]).complement().forte_num
+    ///     '8-1'
+    fn complement(&self) -> Self {
+        let present: std::collections::HashSet<i8> = self.pcs.iter().map(|pc| pc.raw()).collect();
+        let pcs = (0..=11)
+            .filter(|pc| !present.contains(pc))
+            .map(PitchClass)
+            .collect();
+        Self { pcs }
     }
 }
 
@@ -321,7 +351,11 @@ fn normal_form(sorted_pcs: &[i8]) -> Vec<i8> {
             let rotations = build_rotations(sorted_pcs);
             let candidates = trim_to_min_span(rotations);
             let winners = break_ties(candidates, n);
-            wrap_line_to_pcs(winners.first().expect("at least one rotation survives tie-breaking"))
+            wrap_line_to_pcs(
+                winners
+                    .first()
+                    .expect("at least one rotation survives tie-breaking"),
+            )
         }
     }
 }
@@ -420,10 +454,7 @@ fn map_ordered_set<F: Fn(PitchClass) -> PitchClass>(set: &[i8], f: F) -> PyResul
 }
 
 fn satisfy_pc_for_forte(forte_num: &str, partial: &[i8]) -> PyResult<Vec<Vec<i8>>> {
-    crate::error::require(
-        has_unique_elements(partial),
-        "pitch classes must be unique",
-    )?;
+    crate::error::require(has_unique_elements(partial), "pitch classes must be unique")?;
     let mut validated_partial = Vec::with_capacity(partial.len());
     for &pc in partial {
         validated_partial.push(PitchClass::try_new(pc)?.raw());
@@ -441,17 +472,11 @@ fn satisfy_pc_for_forte(forte_num: &str, partial: &[i8]) -> PyResult<Vec<Vec<i8>
     let mut solutions: BTreeSet<Vec<i8>> = BTreeSet::new();
 
     for t in 0..12 {
-        let transposed: Vec<i8> = prime
-            .iter()
-            .map(|&p| (p + t).rem_euclid(12))
-            .collect();
+        let transposed: Vec<i8> = prime.iter().map(|&p| (p + t).rem_euclid(12)).collect();
         let transposed_set: HashSet<i8> = transposed.iter().copied().collect();
 
         if partial_set.is_subset(&transposed_set) {
-            let missing: Vec<i8> = transposed_set
-                .difference(&partial_set)
-                .copied()
-                .collect();
+            let missing: Vec<i8> = transposed_set.difference(&partial_set).copied().collect();
             if !missing.is_empty() {
                 let mut missing_sorted = missing;
                 missing_sorted.sort_unstable();
