@@ -12,6 +12,8 @@ dependencies = [
  "pyo3-stub-gen",
  "pyo3-stub-gen-derive",
  "rand 0.10.0",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

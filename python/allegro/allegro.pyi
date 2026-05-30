@@ -5,10 +5,32 @@ import builtins
 import enum
 import typing
 __all__ = [
+    "BarlineType",
     "Boid",
+    "ClefSign",
     "Dimensions",
     "DistanceMode",
     "FitMode",
+    "MnxBarline",
+    "MnxClef",
+    "MnxDocument",
+    "MnxEvent",
+    "MnxGlobalData",
+    "MnxKeySignature",
+    "MnxMeasureGlobal",
+    "MnxMetadata",
+    "MnxNote",
+    "MnxNoteValue",
+    "MnxPart",
+    "MnxPartMeasure",
+    "MnxPitch",
+    "MnxPositionedClef",
+    "MnxRest",
+    "MnxSequence",
+    "MnxTempo",
+    "MnxTimeSignature",
+    "NoteStep",
+    "NoteValueBase",
     "Pitch",
     "PitchClassSet",
     "Universe",
@@ -145,6 +167,660 @@ class Dimensions:
     @z_max.setter
     def z_max(self, value: builtins.float) -> None: ...
     def __new__(cls, x_min: builtins.float, x_max: builtins.float, y_min: builtins.float, y_max: builtins.float, z_min: builtins.float, z_max: builtins.float) -> Dimensions: ...
+
+@typing.final
+class MnxBarline:
+    r"""
+    A barline drawn at the end of a measure.
+    
+    If omitted from a measure, consuming software infers ``Regular`` for all
+    measures except the last, which defaults to ``Final``.
+    """
+    @property
+    def kind(self) -> BarlineType:
+        r"""
+        The visual style of this barline.
+        """
+    def __new__(cls, kind: BarlineType) -> MnxBarline:
+        r"""
+        Create a barline.
+        
+        Args:
+            kind (BarlineType): The visual style of the barline.
+        
+        Returns:
+            MnxBarline
+        """
+
+@typing.final
+class MnxClef:
+    r"""
+    A clef definition: sign, staff line position, and optional octave transposition.
+    
+    The ``staff_position`` follows MNX convention: a standard G clef is drawn
+    at position ``-2`` (the second line from the bottom).
+    """
+    @property
+    def sign(self) -> ClefSign:
+        r"""
+        The clef sign.
+        """
+    @property
+    def staff_position(self) -> builtins.int:
+        r"""
+        The staff position at which the clef glyph is drawn.
+        """
+    def __new__(cls, sign: ClefSign, staff_position: builtins.int) -> MnxClef:
+        r"""
+        Create a clef.
+        
+        Args:
+            sign (ClefSign): The clef sign (G, F, C, …).
+            staff_position (int): Staff position at which the clef glyph is drawn.
+                A standard treble clef uses ``-2``. A standard bass clef uses ``2``.
+        
+        Returns:
+            MnxClef
+        """
+
+@typing.final
+class MnxDocument:
+    r"""
+    The root MNX document object.
+    
+    An ``MnxDocument`` contains everything needed to represent a complete piece
+    of music: metadata, global measure data (time/key signatures, tempos), and
+    one or more parts.
+    
+    Use :meth:`to_json` or :meth:`to_json_pretty` to produce MNX-compliant JSON.
+    Use :meth:`from_json` to parse an existing MNX JSON string.
+    
+    Examples:
+        Hello world — C4 whole note, 4/4, treble clef::
+    
+            from allegro.mnx import (
+                MnxDocument, MnxMetadata, MnxGlobalData, MnxMeasureGlobal,
+                MnxPart, MnxPartMeasure, MnxSequence, MnxEvent,
+                MnxNote, MnxPitch, MnxNoteValue, MnxClef, MnxPositionedClef,
+                MnxKeySignature, MnxTimeSignature,
+                NoteStep, NoteValueBase, ClefSign,
+            )
+    
+            doc = MnxDocument(
+                mnx=MnxMetadata(version=1),
+                global_data=MnxGlobalData(measures=[
+                    MnxMeasureGlobal(
+                        time=MnxTimeSignature(count=4, unit=4),
+                        key=MnxKeySignature(fifths=0),
+                    )
+                ]),
+                parts=[MnxPart(measures=[
+                    MnxPartMeasure(
+                        clefs=[MnxPositionedClef(clef=MnxClef(
+                            sign=ClefSign.G, staff_position=-2
+                        ))],
+                        sequences=[MnxSequence(content=[
+                            MnxEvent(
+                                duration=MnxNoteValue(base=NoteValueBase.Whole),
+                                notes=[MnxNote(pitch=MnxPitch(
+                                    step=NoteStep.C, octave=4
+                                ))],
+                            )
+                        ])],
+                    )
+                ])],
+            )
+            print(doc.to_json_pretty())
+    """
+    @property
+    def mnx(self) -> MnxMetadata:
+        r"""
+        The MNX metadata (version, etc.).
+        """
+    @property
+    def global_data(self) -> MnxGlobalData:
+        r"""
+        The global measure data.
+        """
+    @property
+    def parts(self) -> builtins.list[MnxPart]:
+        r"""
+        The instrument parts.
+        """
+    def __new__(cls, mnx: MnxMetadata, global_data: MnxGlobalData, parts: typing.Sequence[MnxPart]) -> MnxDocument:
+        r"""
+        Create an MNX document.
+        
+        Args:
+            mnx (MnxMetadata): Document metadata (includes the MNX version).
+            global_data (MnxGlobalData): Global measure data shared across all
+                parts (time/key signatures, tempos, barlines).
+            parts (list[MnxPart]): One or more instrument parts. Every part
+                must contain the same number of measures as ``global_data``.
+        
+        Returns:
+            MnxDocument
+        """
+    def to_json(self) -> builtins.str:
+        r"""
+        Serialize this document to a compact MNX JSON string.
+        
+        Returns:
+            str: A compact JSON representation of this MNX document.
+        """
+    def to_json_pretty(self) -> builtins.str:
+        r"""
+        Serialize this document to a pretty-printed MNX JSON string.
+        
+        Returns:
+            str: An indented JSON representation of this MNX document.
+        """
+    @staticmethod
+    def from_json(json: builtins.str) -> MnxDocument:
+        r"""
+        Parse an MNX JSON string into an :class:`MnxDocument`.
+        
+        Args:
+            json (str): A valid MNX JSON string.
+        
+        Returns:
+            MnxDocument
+        
+        Raises:
+            ValueError: If the JSON is malformed or does not match the MNX schema.
+        """
+
+@typing.final
+class MnxEvent:
+    r"""
+    A discrete musical event: a set of simultaneous pitched notes, or a rest.
+    
+    Construct via the named factory methods rather than directly:
+    
+    - :meth:`MnxEvent.note` — one or more simultaneous pitches (chord or single note)
+    - :meth:`MnxEvent.rest` — a silent rest
+    
+    This design makes intent unambiguous at the call site and eliminates
+    invalid states (neither notes nor rest; both notes and rest).
+    
+    Extension note: when tuplet and grace-note sequence items are added they
+    will implement a shared ``SequenceItem`` trait alongside ``MnxEvent``.
+    """
+    @property
+    def duration(self) -> MnxNoteValue:
+        r"""
+        The rhythmic duration of this event.
+        """
+    @property
+    def notes(self) -> typing.Optional[builtins.list[MnxNote]]:
+        r"""
+        Notes sounding in this event, or ``None`` if this is a rest.
+        """
+    @property
+    def is_rest(self) -> builtins.bool:
+        r"""
+        ``True`` if this event is a rest; ``False`` if it contains notes.
+        """
+    @staticmethod
+    def note(duration: MnxNoteValue, notes: typing.Sequence[MnxNote]) -> MnxEvent:
+        r"""
+        Create a note event containing one or more simultaneous pitches.
+        
+        A single-element list produces a single note; multiple elements produce
+        a chord.
+        
+        Args:
+            duration (MnxNoteValue): The rhythmic duration.
+            notes (list[MnxNote]): One or more notes sounding together.
+        
+        Returns:
+            MnxEvent
+        
+        Examples:
+            Single note::
+        
+                event = MnxEvent.note(
+                    duration=MnxNoteValue(base=NoteValueBase.Quarter),
+                    notes=[MnxNote(pitch=MnxPitch(step=NoteStep.C, octave=4))],
+                )
+        
+            Chord::
+        
+                event = MnxEvent.note(
+                    duration=MnxNoteValue(base=NoteValueBase.Half),
+                    notes=[
+                        MnxNote(pitch=MnxPitch(step=NoteStep.C, octave=4)),
+                        MnxNote(pitch=MnxPitch(step=NoteStep.E, octave=4)),
+                        MnxNote(pitch=MnxPitch(step=NoteStep.G, octave=4)),
+                    ],
+                )
+        """
+    @staticmethod
+    def rest(duration: MnxNoteValue) -> MnxEvent:
+        r"""
+        Create a rest event.
+        
+        Args:
+            duration (MnxNoteValue): The rhythmic duration of the rest.
+        
+        Returns:
+            MnxEvent
+        
+        Examples:
+            Whole-note rest::
+        
+                event = MnxEvent.rest(duration=MnxNoteValue(base=NoteValueBase.Whole))
+        """
+
+@typing.final
+class MnxGlobalData:
+    r"""
+    The global section of an MNX document: one ``MnxMeasureGlobal`` per measure.
+    """
+    @property
+    def measures(self) -> builtins.list[MnxMeasureGlobal]:
+        r"""
+        The list of per-measure global metadata objects.
+        """
+    def __new__(cls, measures: typing.Sequence[MnxMeasureGlobal]) -> MnxGlobalData:
+        r"""
+        Create the global data section.
+        
+        Args:
+            measures (list[MnxMeasureGlobal]): One entry per measure in the
+                document. Every part must have the same number of measures.
+        
+        Returns:
+            MnxGlobalData
+        """
+
+@typing.final
+class MnxKeySignature:
+    r"""
+    A key signature defined by its distance in fifths from C major / A minor.
+    
+    Positive values indicate sharps; negative values indicate flats.
+    Zero indicates C major / A minor (no accidentals).
+    
+    Examples:
+        G major (1 sharp): ``MnxKeySignature(fifths=1)``
+    
+        F major (1 flat): ``MnxKeySignature(fifths=-1)``
+    """
+    @property
+    def fifths(self) -> builtins.int:
+        r"""
+        Distance in fifths from C major / A minor.
+        """
+    def __new__(cls, fifths: builtins.int) -> MnxKeySignature:
+        r"""
+        Create a key signature.
+        
+        Args:
+            fifths (int): Distance in perfect fifths from C (positive = sharps,
+                negative = flats).
+        
+        Returns:
+            MnxKeySignature
+        """
+
+@typing.final
+class MnxMeasureGlobal:
+    r"""
+    Global measure metadata shared across all parts.
+    
+    Each ``MnxMeasureGlobal`` corresponds to one measure in every part.
+    Only attributes that change need to appear; omitted attributes are
+    inherited from the previous measure or left to the consuming application.
+    """
+    @property
+    def time(self) -> typing.Optional[MnxTimeSignature]:
+        r"""
+        The time signature for this measure, if set.
+        """
+    @property
+    def key(self) -> typing.Optional[MnxKeySignature]:
+        r"""
+        The key signature for this measure, if set.
+        """
+    @property
+    def barline(self) -> typing.Optional[MnxBarline]:
+        r"""
+        The barline at the end of this measure, if set.
+        """
+    @property
+    def tempos(self) -> typing.Optional[builtins.list[MnxTempo]]:
+        r"""
+        Tempo markings at the start of this measure, if any.
+        """
+    def __new__(cls, time: typing.Optional[MnxTimeSignature] = None, key: typing.Optional[MnxKeySignature] = None, barline: typing.Optional[MnxBarline] = None, tempos: typing.Optional[typing.Sequence[MnxTempo]] = None) -> MnxMeasureGlobal:
+        r"""
+        Create global measure metadata.
+        
+        Args:
+            time (MnxTimeSignature | None): Time signature. Supply only in the
+                first measure or when it changes.
+            key (MnxKeySignature | None): Key signature. Supply only in the
+                first measure or when it changes.
+            barline (MnxBarline | None): Barline at the end of this measure.
+            tempos (list[MnxTempo] | None): Tempo markings at the start of
+                this measure.
+        
+        Returns:
+            MnxMeasureGlobal
+        """
+
+@typing.final
+class MnxMetadata:
+    r"""
+    MNX document metadata: currently just the format version number.
+    """
+    @property
+    def version(self) -> builtins.int:
+        r"""
+        The MNX version number.
+        """
+    def __new__(cls, version: builtins.int) -> MnxMetadata:
+        r"""
+        Create MNX metadata.
+        
+        Args:
+            version (int): The MNX version number (use ``1`` for the current draft).
+        
+        Returns:
+            MnxMetadata
+        """
+
+@typing.final
+class MnxNote:
+    r"""
+    A single note within an event, identified by its sounded pitch.
+    
+    Future attributes (ties, staff override, accidental display) can be added
+    without breaking existing documents.
+    """
+    @property
+    def pitch(self) -> MnxPitch:
+        r"""
+        The sounded pitch of this note.
+        """
+    def __new__(cls, pitch: MnxPitch) -> MnxNote:
+        r"""
+        Create a note.
+        
+        Args:
+            pitch (MnxPitch): The sounded pitch of this note.
+        
+        Returns:
+            MnxNote
+        """
+
+@typing.final
+class MnxNoteValue:
+    r"""
+    A rhythmic note value: a base duration plus optional augmentation dots.
+    
+    Examples:
+        A dotted quarter note: ``MnxNoteValue(base=NoteValueBase.Quarter, dots=1)``
+    
+        A whole note: ``MnxNoteValue(base=NoteValueBase.Whole)``
+    """
+    @property
+    def base(self) -> NoteValueBase:
+        r"""
+        The base rhythmic duration.
+        """
+    @property
+    def dots(self) -> typing.Optional[builtins.int]:
+        r"""
+        Number of augmentation dots, if any.
+        """
+    def __new__(cls, base: NoteValueBase, dots: typing.Optional[builtins.int] = None) -> MnxNoteValue:
+        r"""
+        Create a new note value.
+        
+        Args:
+            base (NoteValueBase): The base rhythmic duration.
+            dots (int | None): Number of augmentation dots (0–5). Defaults to ``None``.
+        
+        Returns:
+            MnxNoteValue
+        """
+
+@typing.final
+class MnxPart:
+    r"""
+    A single instrument part containing one measure per global measure.
+    """
+    @property
+    def measures(self) -> builtins.list[MnxPartMeasure]:
+        r"""
+        The measures of this part.
+        """
+    @property
+    def name(self) -> typing.Optional[builtins.str]:
+        r"""
+        The display name of this part, if set.
+        """
+    @property
+    def staves(self) -> typing.Optional[builtins.int]:
+        r"""
+        The number of staves in this part, if set.
+        """
+    def __new__(cls, measures: typing.Sequence[MnxPartMeasure], name: typing.Optional[builtins.str] = None, staves: typing.Optional[builtins.int] = None) -> MnxPart:
+        r"""
+        Create a part.
+        
+        Args:
+            measures (list[MnxPartMeasure]): One measure per global measure.
+                The length must match ``MnxGlobalData.measures``.
+            name (str | None): Display name for the part (e.g. ``"Violin I"``).
+            staves (int | None): Number of staves (default ``1``; use ``2`` for
+                grand staff as in piano music).
+        
+        Returns:
+            MnxPart
+        """
+
+@typing.final
+class MnxPartMeasure:
+    r"""
+    A single measure within a part, containing sequences of events and optional clef changes.
+    """
+    @property
+    def sequences(self) -> builtins.list[MnxSequence]:
+        r"""
+        The sequences (voices) in this measure.
+        """
+    @property
+    def clefs(self) -> typing.Optional[builtins.list[MnxPositionedClef]]:
+        r"""
+        Clef changes in this measure, if any.
+        """
+    def __new__(cls, sequences: typing.Sequence[MnxSequence], clefs: typing.Optional[typing.Sequence[MnxPositionedClef]] = None) -> MnxPartMeasure:
+        r"""
+        Create a part measure.
+        
+        Args:
+            sequences (list[MnxSequence]): One sequence per voice. A typical
+                single-voice measure has exactly one sequence.
+            clefs (list[MnxPositionedClef] | None): Clef changes within this
+                measure. A clef at the start of the first measure sets the initial
+                clef for the part.
+        
+        Returns:
+            MnxPartMeasure
+        """
+
+@typing.final
+class MnxPitch:
+    r"""
+    The sounded pitch of a note: step, octave, and optional chromatic alteration.
+    
+    Pitches are represented using the diatonic step (C–G), a Helmholtz octave
+    number (4 = middle C octave), and an optional ``alter`` value in semitones
+    (e.g. ``1.0`` for sharp, ``-1.0`` for flat).
+    """
+    @property
+    def step(self) -> NoteStep:
+        r"""
+        The diatonic pitch step.
+        """
+    @property
+    def octave(self) -> builtins.int:
+        r"""
+        The octave number (4 = middle C octave).
+        """
+    @property
+    def alter(self) -> typing.Optional[builtins.float]:
+        r"""
+        Chromatic alteration in semitones, if any.
+        """
+    def __new__(cls, step: NoteStep, octave: builtins.int, alter: typing.Optional[builtins.float] = None) -> MnxPitch:
+        r"""
+        Create a new pitch.
+        
+        Args:
+            step (NoteStep): The diatonic pitch step (A–G).
+            octave (int): The octave number (4 = middle C octave).
+            alter (float | None): Chromatic alteration in semitones
+                (``1.0`` for sharp, ``-1.0`` for flat). Defaults to ``None``.
+        
+        Returns:
+            MnxPitch
+        """
+
+@typing.final
+class MnxPositionedClef:
+    r"""
+    A clef placed at a specific position within a measure.
+    
+    If no ``position`` is supplied the clef is assumed to be at the start of
+    the measure.
+    """
+    @property
+    def clef(self) -> MnxClef:
+        r"""
+        The clef definition.
+        """
+    def __new__(cls, clef: MnxClef) -> MnxPositionedClef:
+        r"""
+        Create a positioned clef.
+        
+        Args:
+            clef (MnxClef): The clef definition.
+        
+        Returns:
+            MnxPositionedClef
+        """
+
+@typing.final
+class MnxRest:
+    r"""
+    A rest within an event. Serializes as an empty object ``{}``.
+    """
+    def __new__(cls) -> MnxRest:
+        r"""
+        Create a rest.
+        
+        Returns:
+            MnxRest
+        """
+
+@typing.final
+class MnxSequence:
+    r"""
+    An ordered sequence of events forming a single polyphonic voice within a measure.
+    
+    All events in a sequence must cover the full duration of the measure
+    when summed. Use the ``voice`` attribute to distinguish multiple sequences
+    (voices) within the same measure.
+    """
+    @property
+    def content(self) -> builtins.list[MnxEvent]:
+        r"""
+        The ordered events in this voice.
+        """
+    @property
+    def voice(self) -> typing.Optional[builtins.str]:
+        r"""
+        The voice identifier, if any.
+        """
+    def __new__(cls, content: typing.Sequence[MnxEvent], voice: typing.Optional[builtins.str] = None) -> MnxSequence:
+        r"""
+        Create a sequence.
+        
+        Args:
+            content (list[MnxEvent]): The ordered events in this voice.
+            voice (str | None): An opaque identifier for this voice. Sequences
+                sharing the same ``voice`` value across measures belong to the
+                same voice. Defaults to ``None``.
+        
+        Returns:
+            MnxSequence
+        """
+
+@typing.final
+class MnxTempo:
+    r"""
+    A tempo marking expressed as beats-per-minute for a given note value.
+    
+    Examples:
+        Quarter note = 120 bpm: ``MnxTempo(bpm=120.0, value=MnxNoteValue(base=NoteValueBase.Quarter))``
+    """
+    @property
+    def bpm(self) -> builtins.float:
+        r"""
+        Beats per minute.
+        """
+    @property
+    def value(self) -> MnxNoteValue:
+        r"""
+        The note value that receives one beat.
+        """
+    def __new__(cls, bpm: builtins.float, value: MnxNoteValue) -> MnxTempo:
+        r"""
+        Create a tempo marking.
+        
+        Args:
+            bpm (float): Beats per minute.
+            value (MnxNoteValue): The note value that receives one beat.
+        
+        Returns:
+            MnxTempo
+        """
+
+@typing.final
+class MnxTimeSignature:
+    r"""
+    A time signature expressed as beat count over beat unit.
+    
+    Examples:
+        4/4 time: ``MnxTimeSignature(count=4, unit=4)``
+    
+        6/8 time: ``MnxTimeSignature(count=6, unit=8)``
+    """
+    @property
+    def count(self) -> builtins.int:
+        r"""
+        The beat count (top number of the time signature).
+        """
+    @property
+    def unit(self) -> builtins.int:
+        r"""
+        The beat unit (bottom number of the time signature).
+        """
+    def __new__(cls, count: builtins.int, unit: builtins.int) -> MnxTimeSignature:
+        r"""
+        Create a time signature.
+        
+        Args:
+            count (int): Number of beats (top number).
+            unit (int): Beat unit as a power of two (bottom number, e.g. 4 or 8).
+        
+        Returns:
+            MnxTimeSignature
+        """
 
 @typing.final
 class Pitch:
@@ -486,6 +1162,66 @@ class Voicing:
         """
 
 @typing.final
+class BarlineType(enum.Enum):
+    r"""
+    The visual style of a barline.
+    """
+    Regular = ...
+    r"""
+    Standard single barline.
+    """
+    Final = ...
+    r"""
+    Final double barline (thin-thick).
+    """
+    Double = ...
+    r"""
+    Double barline (thin-thin).
+    """
+    Dashed = ...
+    r"""
+    Dashed barline.
+    """
+    Dotted = ...
+    r"""
+    Dotted barline.
+    """
+    Tick = ...
+    r"""
+    Tick barline.
+    """
+    Short = ...
+    r"""
+    Short barline.
+    """
+
+@typing.final
+class ClefSign(enum.Enum):
+    r"""
+    The sign used for a clef.
+    """
+    G = ...
+    r"""
+    Treble (G) clef.
+    """
+    F = ...
+    r"""
+    Bass (F) clef.
+    """
+    C = ...
+    r"""
+    Alto/tenor (C) clef.
+    """
+    Percussion = ...
+    r"""
+    Percussion clef.
+    """
+    Tab = ...
+    r"""
+    Tab clef (for guitar tablature).
+    """
+
+@typing.final
 class DistanceMode(enum.Enum):
     r"""
     Strategy for measuring distance between two voicings.
@@ -562,6 +1298,114 @@ class FitMode(enum.Enum):
     or reflection; the result is always one of the two endpoints when outside.
     
     Example with range [0, 10]: 15 → 10, -3 → 0.
+    """
+
+@typing.final
+class NoteStep(enum.Enum):
+    r"""
+    The diatonic pitch step (letter name) of a note.
+    """
+    A = ...
+    r"""
+    The note A.
+    """
+    B = ...
+    r"""
+    The note B.
+    """
+    C = ...
+    r"""
+    The note C.
+    """
+    D = ...
+    r"""
+    The note D.
+    """
+    E = ...
+    r"""
+    The note E.
+    """
+    F = ...
+    r"""
+    The note F.
+    """
+    G = ...
+    r"""
+    The note G.
+    """
+
+@typing.final
+class NoteValueBase(enum.Enum):
+    r"""
+    The base rhythmic duration of a note, without augmentation dots.
+    """
+    Maxima = ...
+    r"""
+    Maxima (8 whole notes).
+    """
+    Longa = ...
+    r"""
+    Longa (4 whole notes).
+    """
+    DuplexMaxima = ...
+    r"""
+    Duplex Maxima (16 whole notes).
+    """
+    Breve = ...
+    r"""
+    Breve (2 whole notes).
+    """
+    Whole = ...
+    r"""
+    Whole note.
+    """
+    Half = ...
+    r"""
+    Half note.
+    """
+    Quarter = ...
+    r"""
+    Quarter note.
+    """
+    Eighth = ...
+    r"""
+    Eighth note.
+    """
+    Sixteenth = ...
+    r"""
+    16th note.
+    """
+    ThirtySecond = ...
+    r"""
+    32nd note.
+    """
+    SixtyFourth = ...
+    r"""
+    64th note.
+    """
+    OneTwentyEighth = ...
+    r"""
+    128th note.
+    """
+    TwoFiftySixth = ...
+    r"""
+    256th note.
+    """
+    FiveTwelfth = ...
+    r"""
+    512th note.
+    """
+    TenTwentyFourth = ...
+    r"""
+    1024th note.
+    """
+    TwoThousandFortyEighth = ...
+    r"""
+    2048th note.
+    """
+    FourThousandNinetySixth = ...
+    r"""
+    4096th note.
     """
 
 def bouncing_ball(height: builtins.float, velocity: builtins.float, gravity: typing.Optional[builtins.float] = None, elasticity: builtins.float = 1.0, samples_per_second: builtins.float = 100.0, max_time: typing.Optional[builtins.float] = None) -> builtins.list[tuple[builtins.float, builtins.float]]:
